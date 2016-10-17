@@ -1,0 +1,55 @@
+function cnn_prefetch_frames(varargin)
+%prefetch and store the frames on ssd
+
+run(fullfile(fileparts(mfilename('fullpath')), ...
+  '..', '..', 'matlab', 'vl_setupnn.m')) ;
+
+opts.dataDir = '/mnt/large/pxnguyen/vine-large-2/';
+opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/danilo');
+opts.dest_dir = '/tmp/vine-images/';
+opts.imdbPath = fullfile(opts.expDir, 'imdb.mat');
+opts = vl_argparse(opts, varargin) ;
+
+imdb = load(opts.imdbPath) ;
+imdb.imageDir = fullfile(opts.dataDir, 'videos');
+
+rng(1) ;
+
+[epoch, iter] = findLastCheckpoint(opts.expDir);
+params = opts ;
+opts.train = find(imdb.images.set==1);
+num_train = numel(find(imdb.images.set==1));
+train_indeces = opts.train(randperm(num_train)) ; % shuffle
+params.imdb = imdb ;
+video_paths = fullfile(imdb.imageDir, imdb.images.name(train_indeces));
+
+% remove the past
+for video_index = 1:iter
+  vid_path = video_paths{video_index};
+  [~, name, ext] = fileparts(vid_path);
+  frame_tmpdir = fullfile(opts.dest_dir, [name ext]);
+  if exist(frame_tmpdir, 'dir')
+    fprintf('removing %s (%d/%d)\n', frame_tmpdir, video_index, iter)
+    rmdir(frame_tmpdir, 's');
+  end
+end
+
+for video_index = iter:min(iter+30000, length(video_paths))
+  fprintf('%s (%d/%d)\n', video_paths{video_index}, video_index, length(video_paths));
+  extract_frames(video_paths{video_index});
+end
+
+% -------------------------------------------------------------------------
+function [epoch, iter] = findLastCheckpoint(modelDir)
+% -------------------------------------------------------------------------
+list = dir(fullfile(modelDir, 'net-epoch-*-iter-*.mat')) ;
+if ~isempty(list)
+  tokens = regexp({list.name}, 'net-epoch-([\d]+)-iter-([\d]+).mat', 'tokens') ;
+  epoch = cellfun(@(x) sscanf(x{1}{1}, '%d'), tokens) ;
+  iter = cellfun(@(x) sscanf(x{1}{2}, '%d'), tokens) ;
+  epoch = max([epoch 0]);
+  iter = max([iter 1]);
+else
+  epoch = 1;
+  iter = 1;
+end
