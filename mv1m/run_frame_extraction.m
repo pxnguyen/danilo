@@ -4,12 +4,13 @@ hostname = strtrim(hostname);
 opts = struct();
 switch hostname
   case 'deepthought'
-    matconvnet_path = ''
+    matconvnet_path = '/home/nguyenpx/matconvnet/'
     opts.dest_dir = '/home/nguyenpx/danilo/vine-images/'
     opts.data_dir = '/home/nguyenpx/vine-large-2/'
     opts.exp_dir = '/home/nguyenpx/danilo/exp_files/'
     opts.num_pool = 12
   case 'pi'
+    matconvnet_path = '/home/phuc/Research/matconvnet-1.0-beta21/'
     opts.dest_dir = '/tmp/vine-images/'
     opts.data_dir = '/mnt/large/pxnguyen/vine-large-2/';
     opts.exp_dir = '/mnt/large/pxnguyen/cnn_exp/danilo';

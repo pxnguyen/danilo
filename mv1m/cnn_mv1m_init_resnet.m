@@ -27,7 +27,7 @@ net.meta.classes.name = opts.classNames ;
 
 net.meta.inputSize = {'input', [net.meta.normalization.imageSize 32]} ;
 
-lr = [0.005 * ones(1,30), 0.001*ones(1,30), 0.0001*ones(1,30)] ;
+lr = [0.001 * ones(1, 80000), 0.0001*ones(1, 80000), 0.00001*ones(1, 80000)];
 net.meta.trainOpts.learningRate = lr ;
 net.meta.trainOpts.numEpochs = numel(lr) ;
 net.meta.trainOpts.momentum = 0.9 ;
@@ -83,7 +83,17 @@ net.removeLayer('pool5') ;
 
 lName = net.layers(end).name;
 net.addLayer('loss', dagnn.Loss('loss', 'logistic'), {lName, 'label'}, 'objective');
-%net.addLayer('error', dagnn.Loss('loss', 'classerror'), {'softmax','label'}, 'error') ;
+
+% performance metrics
+net.addLayer('sigmoid', dagnn.Sigmoid(), lName, 'sigmoid');
+net.addLayer('error',...
+  dagnn.Loss('loss', 'hit@k', 'opts', {'topK', 1}),...
+  {'sigmoid', 'label'}, 'hit_at_1') ;
+
+net.addLayer('error5',...
+  dagnn.Loss('loss', 'hit@k', 'opts', {'topK', 5}),...
+  {'sigmoid', 'label'}, 'hit_at_5') ;
+
 
 %net.addLayer('softmax', dagnn.SoftMax(), lName, 'softmax');
 

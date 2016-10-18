@@ -70,13 +70,11 @@ end
 epoch = start_epoch;
 done = false;
 current_iter = start_iter;
-iter_per_epoch = 10000;
 rng(epoch + opts.randomSeed) ;
-train_random_order = randperm(numel(opts.train));
 val_random_order = randperm(numel(opts.val));
 batchSize = opts.batchSize;
-save(fullfile(opts.expDir, 'train_random_order.mat'),...
-      'train_random_order', 'batchSize')
+iter_per_epoch = 10000;
+iter_per_save = 1000;
 while ~done
   % Set the random seed based on the epoch and opts.randomSeed.
   % This is important for reproducibility, including when training
@@ -85,31 +83,28 @@ while ~done
     % every N number iter
     % shuffle the training data again by increasing the epoch
     % move the last epoch changed
-    fprintf('Reshuffling...\n');
     start_iter = current_iter;
     epoch = epoch + 1;
-    train_random_order = randperm(numel(opts.train));
     val_random_order = randperm(numel(opts.val));
-    save(fullfile(opts.expDir, 'train_random_order.mat'),...
-      'train_random_order', 'batchSize')
     prepareGPUs(opts, true) ;
   end
 
   % Train for one epoch.
   params = opts ;
   params.epoch = epoch ;
-  params.learningRate = opts.learningRate(min(epoch, numel(opts.learningRate))) ;
+  params.learningRate = opts.learningRate(min(current_iter+1, numel(opts.learningRate))) ;
 
-  params.train = opts.train(train_random_order) ; % shuffle
+  train_random_order = randperm(numel(opts.train));
+  params.train = opts.train(train_random_order(1:iter_per_save*batchSize)) ; % shuffle
   params.val = opts.val(val_random_order(1:2000));
   params.imdb = imdb ;
   params.getBatch = getBatch ;
   params.current_iter = current_iter;
 
   if numel(opts.gpus) <= 1
-    [net, state, run_iter] = processEpoch(net, state, params, 'train') ;
-    current_iter = current_iter + run_iter;
-    [net, state, ~] = processEpoch(net, state, params, 'val') ;
+    [net, state] = processEpoch(net, state, params, 'train') ;
+    current_iter = current_iter + iter_per_save;
+    [net, state] = processEpoch(net, state, params, 'val') ;
     if ~evaluateMode
       removeSmallestCheckpoint(opts.expDir);
       saveState(modelPath(epoch, current_iter), net, state) ;
@@ -117,8 +112,8 @@ while ~done
     lastStats = state.stats ;
   else
     spmd
-      [net, state, ~] = processEpoch(net, state, params, 'train') ;
-      [net, state, ~] = processEpoch(net, state, params, 'val') ;
+      [net, state] = processEpoch(net, state, params, 'train') ;
+      [net, state] = processEpoch(net, state, params, 'val') ;
       if labindex == 1 && ~evaluateMode
         saveState(modelPath(epoch), net, state) ;
       end
@@ -130,6 +125,7 @@ while ~done
   stats.train(save_index) = lastStats.train ;
   stats.val(save_index) = lastStats.val ;
   stats.iter_recorded(save_index) = current_iter;
+  stats.learning_rate(save_index) = params.learningRate;
   save_index = save_index + 1;
   clear lastStats ;
   saveStats(modelPath(epoch, current_iter), stats) ;
@@ -147,24 +143,30 @@ while ~done
       cat(2,...
       fieldnames(stats.train)', ...
       fieldnames(stats.val)'), {'num', 'time'}) ;
-    for p = plots
-      p = char(p) ;
-      values = zeros(0, length(stats.iter_recorded)) ;
-      leg = {} ;
-      for f = {'train', 'val'}
-        f = char(f) ;
+    num_plots = numel(plots);
+    for f = {'train', 'val'}
+      f = char(f) ;
+      for p = plots
+        values = zeros(0, length(stats.iter_recorded)) ;
+        p = char(p) ;
+        leg = {} ;
         if isfield(stats.(f), p)
           tmp = [stats.(f).(p)] ;
           values(end+1,:) = tmp(1,:)' ;
           leg{end+1} = f ;
         end
+        if strcmp(f, 'train')
+          subplot(2, numel(plots), find(strcmp(p,plots))) ;
+          semilogy(stats.iter_recorded, values','o-') ;
+        else
+          subplot(2, numel(plots), find(strcmp(p,plots))+num_plots) ;
+          semilogy(stats.iter_recorded, values','ro-') ;
+        end
+        xlabel('iterations') ;
+        title(p) ;
+        legend(leg{:}) ;
+        grid on ;
       end
-      subplot(1, numel(plots), find(strcmp(p,plots))) ;
-      plot(stats.iter_recorded, values','o-') ;
-      xlabel('iterations') ;
-      title(p) ;
-      legend(leg{:}) ;
-      grid on ;
     end
     drawnow ;
     print(1, modelFigPath, '-dpdf') ;
@@ -175,7 +177,7 @@ end
 if isa(net, 'Composite'), net = net{1} ; end
 
 % -------------------------------------------------------------------------
-function [net, state, run_iter] = processEpoch(net, state, params, mode)
+function [net, state] = processEpoch(net, state, params, mode)
 % -------------------------------------------------------------------------
 % Args:
 %   net: the network structure
@@ -224,15 +226,7 @@ stats.num = 0 ; % return something even if subset = []
 stats.time = 0 ;
 
 start = tic ;
-if strcmp(mode, 'train')
-  start_iter = params.current_iter;
-  max_iter = floor(numel(subset)/params.batchSize);
-  start_video = (mod(start_iter, max_iter)*params.batchSize) + 1;
-else
-  start_video = 1;
-end
-run_iter = 0;
-for t=start_video:params.batchSize:numel(subset)
+for t=1:params.batchSize:numel(subset)
   fprintf('%s: epoch %02d: %3d/%3d:', mode, epoch, ...
           fix((t-1)/params.batchSize)+1, ceil(numel(subset)/params.batchSize)) ;
   batchSize = min(params.batchSize, numel(subset) - t + 1) ;
@@ -297,12 +291,6 @@ for t=start_video:params.batchSize:numel(subset)
   end
   fprintf('\n') ;
 
-  run_iter = run_iter + 1;
-
-  if run_iter == 500
-    % if past a certain threshold, quit to save and display intermediate result
-    break;
-  end
 end
 
 % Save back to state.
@@ -461,10 +449,12 @@ else
   iter = 0;
 end
 
+% -------------------------------------------------------------------------
 function removeSmallestCheckpoint(modelDir)
+% -------------------------------------------------------------------------
 list = dir(fullfile(modelDir, 'net-epoch-*-iter-*.mat')) ;
 if length(list) > 10 % remove the smallest
-  todelete = fullfile(modelDir, list(end).name);
+  todelete = fullfile(modelDir, list(1).name);
   delete(todelete);
 end
 
