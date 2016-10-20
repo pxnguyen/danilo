@@ -1,6 +1,6 @@
 function [net, info] = cnn_mv1m(varargin)
 %CNN_IMAGENET   Demonstrates training a CNN on ImageNet
-run(fullfile('/home/phuc/Research/matconvnet-1.0-beta21', 'matlab', 'vl_setupnn.m'));
+run(fullfile('/home/phuc/Research/danilo/mv1m/matconvnet', 'matlab', 'vl_setupnn.m'));
 
 opts.dataDir = '/mnt/large/pxnguyen/vine-large-2/';
 opts.modelType = 'resnet-50' ;
@@ -147,15 +147,9 @@ end
 all_files = cat(2, all_files{:});
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
 if nargout > 0
-  batch_level_labels = imdb.images.label(batch) ;
-  labels = -ones(4000, length(batch_level_labels));
-  for label_index = 1:length(batch_level_labels)
-    vid_level_tag_indeces = cellfun(@(x) str2num(x),...
-      batch_level_labels{label_index});
-    for tag_index = vid_level_tag_indeces
-      labels(tag_index+1, label_index) = 1;
-    end
-  end
+  labels = full(imdb.images.label(:, batch)) ;
+  labels(labels==0) = -1;
+  num_classes = numel(imdb.classes.name);
   % labels has to be W x H x D x N
   labels = permute(labels, [3, 4, 1, 2]);
   switch networkType

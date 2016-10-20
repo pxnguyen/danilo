@@ -269,7 +269,7 @@ else
     dzdy = dzdy * instanceWeights ;
   end
   switch lower(opts.loss)
-    case {'classerror', 'topkerror'}
+    case {'classerror', 'topkerror', 'hit@k'}
       y = zerosLike(x) ;
     case 'log'
       y = zerosLike(x) ;

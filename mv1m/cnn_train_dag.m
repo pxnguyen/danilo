@@ -70,11 +70,11 @@ end
 epoch = start_epoch;
 done = false;
 current_iter = start_iter;
-rng(epoch + opts.randomSeed) ;
+rng(1);
 val_random_order = randperm(numel(opts.val));
 batchSize = opts.batchSize;
 iter_per_epoch = 10000;
-iter_per_save = 1000;
+iter_per_save = 50;
 while ~done
   % Set the random seed based on the epoch and opts.randomSeed.
   % This is important for reproducibility, including when training
@@ -95,8 +95,8 @@ while ~done
   params.learningRate = opts.learningRate(min(current_iter+1, numel(opts.learningRate))) ;
 
   train_random_order = randperm(numel(opts.train));
-  params.train = opts.train(train_random_order(1:iter_per_save*batchSize)) ; % shuffle
-  params.val = opts.val(val_random_order(1:2000));
+  params.train = opts.train(train_random_order(1:min(iter_per_save*batchSize, numel(train_random_order)))) ; % shuffle
+  params.val = opts.val(val_random_order(1:min(200, numel(val_random_order))));
   params.imdb = imdb ;
   params.getBatch = getBatch ;
   params.current_iter = current_iter;
@@ -105,6 +105,7 @@ while ~done
     [net, state] = processEpoch(net, state, params, 'train') ;
     current_iter = current_iter + iter_per_save;
     [net, state] = processEpoch(net, state, params, 'val') ;
+    toc;
     if ~evaluateMode
       removeSmallestCheckpoint(opts.expDir);
       saveState(modelPath(epoch, current_iter), net, state) ;
@@ -157,10 +158,10 @@ while ~done
         end
         if strcmp(f, 'train')
           subplot(2, numel(plots), find(strcmp(p,plots))) ;
-          semilogy(stats.iter_recorded, values','o-') ;
+          plot(stats.iter_recorded, values','-') ;
         else
           subplot(2, numel(plots), find(strcmp(p,plots))+num_plots) ;
-          semilogy(stats.iter_recorded, values','ro-') ;
+          plot(stats.iter_recorded, values','r-') ;
         end
         xlabel('iterations') ;
         title(p) ;
@@ -214,6 +215,7 @@ if params.profile
   else
     mpiprofile reset ;
     mpiprofile on ;
+
   end
 end
 
@@ -257,10 +259,14 @@ for t=1:params.batchSize:numel(subset)
     if strcmp(mode, 'train')
       net.mode = 'normal' ;
       net.accumulateParamDers = (s ~= 1) ;
+      tic;
       net.eval(inputs, params.derOutputs, 'holdOn', s < params.numSubBatches) ;
+      toc;
     else
-      net.mode = 'test' ;
+      net.mode = 'normal' ;
+      tic;
       net.eval(inputs) ;
+      toc;
     end
   end
 

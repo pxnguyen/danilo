@@ -13,7 +13,11 @@ classdef Loss < dagnn.ElementWise
     function outputs = forward(obj, inputs, params)
       outputs{1} = vl_nnloss(inputs{1}, inputs{2}, [], 'loss', obj.loss, obj.opts{:}) ;
       n = obj.numAveraged ;
-      m = n + size(inputs{1},4) ;
+      if strcmp(obj.loss, 'hit@k')
+        m = n + 1;
+      else
+        m = n + size(inputs{1},4) ;
+      end
       obj.average = (n * obj.average + gather(outputs{1})) / m ;
       obj.numAveraged = m ;
     end

@@ -27,7 +27,7 @@ net.meta.classes.name = opts.classNames ;
 
 net.meta.inputSize = {'input', [net.meta.normalization.imageSize 32]} ;
 
-lr = [0.001 * ones(1, 80000), 0.0001*ones(1, 80000), 0.00001*ones(1, 80000)];
+lr = [0.00001 * ones(1, 50000), 0.000001*ones(1, 50000), 0.0000001*ones(1, 50000)];
 net.meta.trainOpts.learningRate = lr ;
 net.meta.trainOpts.numEpochs = numel(lr) ;
 net.meta.trainOpts.momentum = 0.9 ;
@@ -90,10 +90,18 @@ net.addLayer('error',...
   dagnn.Loss('loss', 'hit@k', 'opts', {'topK', 1}),...
   {'sigmoid', 'label'}, 'hit_at_1') ;
 
-net.addLayer('error5',...
-  dagnn.Loss('loss', 'hit@k', 'opts', {'topK', 5}),...
-  {'sigmoid', 'label'}, 'hit_at_5') ;
+% net.addLayer('error5',...
+%   dagnn.Loss('loss', 'hit@k', 'opts', {'topK', 5}),...
+%   {'sigmoid', 'label'}, 'hit_at_5') ;
 
+%trainable_layers = {'pool3D5', 'loss', lName};
+%for layer_index = 1:length(net.layers)
+%  if ismember(net.layers(layer_index).name, trainable_layers)
+%    net.layers(layer_index).trainable = true;
+%  else
+%    net.layers(layer_index).trainable = false;
+%  end
+%end
 
 %net.addLayer('softmax', dagnn.SoftMax(), lName, 'softmax');
 
