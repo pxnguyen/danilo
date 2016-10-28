@@ -23,6 +23,7 @@ opts.train = struct() ;
 opts.frame_dir = '/tmp/vine-images';
 opts.iter_per_epoch = 20000;
 opts.iter_per_save = 1000;
+opts.pretrained_path = '';
 opts = vl_argparse(opts, varargin) ;
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
 
