@@ -5,6 +5,7 @@ opts.gpus = [] ;
 opts.batchSize = 12 ;
 opts.imageSize = [256 256] ;
 opts.numThreads = 6 ;
+opts.frame_dir = '/tmp/vine-images';
 opts = vl_argparse(opts, varargin) ;
 
 avg = {} ;
@@ -26,7 +27,7 @@ for t=1:opts.batchSize:numel(images)
   video_paths = images(batch);
   all_files = cell(length(video_paths),1);
   for video_index = 1:length(video_paths)
-    all_files{video_index} = extract_frames(video_paths{video_index});
+    all_files{video_index} = extract_frames(video_paths{video_index}, 'dest_dir', opts.frame_dir);
   end
   
   all_files = cat(2, all_files{:});

@@ -43,7 +43,6 @@ end;
 
 done = false;
 num_tries = 0;
-fid = fopen('/home/phuc/random_list.txt', 'w+');
 while ~done
   [~,hostname] = system('hostname');
   hostname = strtrim(hostname);
@@ -82,7 +81,6 @@ while ~done
     end
   end
 end
-fclose(fid);
 
 files = dir(fullfile(frame_tmpdir, '*.jpeg'));
 files = strcat([frame_tmpdir filesep], {files.name});
