@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+
+<!-- Example based on http://bl.ocks.org/mbostock/3887118 -->
+<!-- Tooltip example from http://www.d3noob.org/2013/01/adding-tooltips-to-d3js-graph.html -->
+
+<style>
+body {
+  font: 11px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.dot {
+  stroke: #000;
+}
+
+.tooltip {
+  position: absolute;
+  width: 100px;
+  height: 42px;
+  border-width: 1px;
+  border-style: solid;
+  background-color: white;
+  pointer-events: none;
+}
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+
+<script>
+var margin = {top: 20, right: 20, bottom: 30, left: 40},
+    width = 1160 - margin.left - margin.right,
+    height = 700 - margin.top - margin.bottom;
+
+/* 
+ * value accessor - returns the value to encode for a given data object.
+ * scale - maps value to a visual display encoding, such as a pixel position.
+ * map function - maps from data value to display value
+ * axis - sets up axis
+ */ 
+
+// setup x 
+var xValue = function(d) { return d.danilo_num_tr;}, // data -> value
+    xScale = d3.scale.log().domain([0, 11110]).range([0, width]), // value -> display
+    xMap = function(d) { return xScale(xValue(d));}, // data -> display
+    xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+
+// setup y
+var yValue = function(d) { return d.danilo_AP;}, // data -> value
+    yScale = d3.scale.log().range([height, 0]), // value -> display
+    yMap = function(d) { return yScale(yValue(d));}, // data -> display
+    yAxis = d3.svg.axis().scale(yScale).orient("left");
+
+var small_xValue = function(d) { return d.danilito_num_tr;}, // data -> value
+    small_xMap = function(d) { return xScale(small_xValue(d));}; // data -> display
+
+var small_yValue = function(d) { return d.danilito_AP;}, // data -> value
+    small_yMap = function(d) { return yScale(small_yValue(d));}; // data -> display
+
+// setup fill color
+var cValue = function(d) { return d.Manufacturer;},
+    color = d3.scale.category10();
+
+// add the graph canvas to the body of the webpage
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// add the tooltip area to the webpage
+var tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 1);
+
+// load data
+d3.csv("ap.csv", function(error, data) {
+
+  // change string (from CSV) into number format
+  data.forEach(function(d) {
+    d["danilo_num_tr"] = +d["danilo_num_tr"];
+    d["danilo_AP"] = +d["danilo_AP"];
+    d["danilito_num_tr"] = +d["danilito_num_tr"];
+    d["danilito_AP"] = +d["danilito_AP"];
+    //console.log(d);
+  });
+
+  // don't want dots overlapping axis, so add in buffer to data domain
+  xScale.domain([0.1, 6630]);
+  yScale.domain([0.000001, 1.2]);
+
+  // x-axis
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+    .append("text")
+      .attr("class", "label")
+      .attr("x", width)
+      .attr("y", -6)
+      .style("text-anchor", "end")
+      .text("Number of training videos");
+
+  // y-axis
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("class", "label")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("AP");
+
+  // draw dots
+  svg.selectAll(".dot")
+      .data(data)
+    .enter().append("circle")
+      .attr("class", "dot")
+      .attr("r", 4)
+      .attr("cx", small_xMap)
+      .attr("cy", small_yMap)
+      .style("fill", 'blue')
+      .on("mouseover", function(d) {
+          tooltip.transition()
+               .style('visibility', 'visible')
+               .duration(20);
+          tooltip.html(d["Tag Name"] + "<br/> (" + small_xValue(d) + ", " + small_yValue(d) + ")"
+            + " <br/> (" + xValue(d) + ", " + yValue(d) + ")")
+               .style("left", (d3.event.pageX + 16) + "px")
+               .style("top", (d3.event.pageY - 50) + "px");
+          line.style('visibility', 'visible')
+               .attr("x1", xMap(d))
+               .attr("y1", yMap(d))
+               .attr("x2", small_xMap(d))
+               .attr("y2", small_yMap(d));
+      })
+      .on("mouseout", function(d) {
+          tooltip.transition()
+               .duration(50)
+               .style("visibility", "hidden");
+      });
+
+  // draw dots
+  svg.selectAll(".dot2")
+      .data(data)
+    .enter().append("circle")
+      .attr("class", "dot")
+      .attr("r", 4)
+      .attr("cx", xMap)
+      .attr("cy", yMap)
+      .style("fill", 'red')
+      .on("mouseover", function(d) {
+          tooltip.transition()
+               .style('visibility', 'visible')
+               .duration(20);
+          tooltip.html(d["Tag Name"] + "<br/> (" + xValue(d) 
+	        + ", " + yValue(d) + ")")
+               .style("left", (d3.event.pageX + 16) + "px")
+               .style("top", (d3.event.pageY - 50) + "px");
+          line.style('visibility', 'visible')
+               .attr("x1", xMap(d))
+               .attr("y1", yMap(d))
+               .attr("x2", small_xMap(d))
+               .attr("y2", small_yMap(d));
+      })
+      .on("mouseout", function(d) {
+          tooltip.transition()
+               .duration(50)
+               .style("visibility", "hidden");
+
+      });
+
+  // draw dots
+  /*
+  svg.selectAll(".dot")
+      .data(data)
+    .enter().append("circle")
+      .attr("class", "dot")
+      .attr("r", 3)
+      .attr("cx", danilito_numtr_Map)
+      .attr("cy", small_yValue)
+      .style("fill", 'red')
+      .on("mouseover", function(d) {
+          tooltip.transition()
+               .style('visibility', 'visible')
+               .duration(20);
+          tooltip.html(d["Tag Name"] + "<br/> (" + danilito_num_tr(d)
+	        + ", " + danilito_AP(d) + ")")
+               .style("left", (d3.event.pageX + 5) + "px")
+               .style("top", (d3.event.pageY - 28) + "px");
+      })
+      .on("mouseout", function(d) {
+          tooltip.transition()
+               .duration(50)
+               .style("visibility", "hidden");
+      });
+      */
+
+
+
+  svg.append("line")
+    .attr('class', 'chance_line')
+    .style("stroke", "green")
+    .style("z-index", 100)
+    .attr("x1", xScale(0.000000000001))
+    .attr("y1", yScale(0.000000000001))
+    .attr("x2", xScale(7296))
+    .attr("y2", yScale(0.0397));
+
+  var line = svg.append("line")
+    .attr("class", "connection")
+    .style("stroke", "magenta")
+    .style("stroke-width", 5)
+    .style("visibility", "visible");
+
+});
+
+</script>
+</body>
+</html>
