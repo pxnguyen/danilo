@@ -1,6 +1,5 @@
 function [net, info] = cnn_mv1m(varargin)
 %CNN_IMAGENET   Demonstrates training a CNN on ImageNet
-run(fullfile('/home/phuc/Research/danilo/mv1m/matconvnet', 'matlab', 'vl_setupnn.m'));
 
 opts.dataDir = '/mnt/large/pxnguyen/vine-large-2/';
 opts.modelType = 'resnet-50' ;
@@ -21,6 +20,9 @@ opts.numFetchThreads = 12 ;
 opts.lite = false ;
 opts.imdbPath = fullfile(opts.expDir, 'imdb.mat');
 opts.train = struct() ;
+opts.frame_dir = '/tmp/vine-images';
+opts.iter_per_epoch = 20000;
+opts.iter_per_save = 1000;
 opts = vl_argparse(opts, varargin) ;
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
 
@@ -91,6 +93,8 @@ end
 
 [net, info] = trainFn(net, imdb, getBatchFn(opts, net.meta), ...
   'expDir', opts.expDir, ...
+  'iter_per_epoch', opts.iter_per_epoch,...
+  'iter_per_save', opts.iter_per_save,...
   'prefetch', true, ...
   'nesterovUpdate', true, ...
   net.meta.trainOpts, ...
@@ -115,6 +119,8 @@ bopts.test = struct(...
   'imageSize',  meta.normalization.imageSize(1:2), ...
   'cropSize', meta.normalization.cropSize, ...
   'subtractAverage', mu) ;
+
+bopts.frame_dir = opts.frame_dir;
 
 % Copy the parameters for data augmentation
 bopts.train = bopts.test ;
@@ -141,7 +147,7 @@ num_frames = 5;
 video_paths = images;
 all_files = cell(length(video_paths),1);
 for video_index = 1:length(video_paths)
-  files = extract_frames(video_paths{video_index});
+  files = extract_frames(video_paths{video_index}, 'dest_dir', opts.frame_dir);
   all_files{video_index} = files(1:num_frames);
 end
 all_files = cat(2, all_files{:});
