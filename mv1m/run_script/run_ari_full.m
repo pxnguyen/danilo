@@ -9,7 +9,7 @@ switch hostname
     opts.expDir = '/mnt/large/pxnguyen/cnn_exp/ari_full';
     opts.frame_dir = '/tmp/vine-images/'
   case 'omega'
-    opts.expDir = 'home/nguyenpx/cnn_exp/ari_full';
+    opts.expDir = '/home/nguyenpx/cnn_exp/ari_full';
     opts.frame_dir = '/scratch/nguyenpx/vine-images/'
 end
 opts.imdbPath = fullfile(opts.expDir, 'ari_full_imdb.mat');
