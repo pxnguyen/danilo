@@ -70,11 +70,10 @@ end
 epoch = start_epoch;
 done = false;
 current_iter = start_iter;
-rng(1);
 val_random_order = randperm(numel(opts.val));
 batchSize = opts.batchSize;
-iter_per_epoch = 10000;
-iter_per_save = 50;
+iter_per_epoch = 40000;
+iter_per_save = 1000;
 while ~done
   % Set the random seed based on the epoch and opts.randomSeed.
   % This is important for reproducibility, including when training
@@ -96,7 +95,7 @@ while ~done
 
   train_random_order = randperm(numel(opts.train));
   params.train = opts.train(train_random_order(1:min(iter_per_save*batchSize, numel(train_random_order)))) ; % shuffle
-  params.val = opts.val(val_random_order(1:min(200, numel(val_random_order))));
+  params.val = opts.val(val_random_order(1:min(8000, numel(val_random_order))));
   params.imdb = imdb ;
   params.getBatch = getBatch ;
   params.current_iter = current_iter;
@@ -105,7 +104,6 @@ while ~done
     [net, state] = processEpoch(net, state, params, 'train') ;
     current_iter = current_iter + iter_per_save;
     [net, state] = processEpoch(net, state, params, 'val') ;
-    toc;
     if ~evaluateMode
       removeSmallestCheckpoint(opts.expDir);
       saveState(modelPath(epoch, current_iter), net, state) ;
@@ -165,7 +163,7 @@ while ~done
         end
         xlabel('iterations') ;
         title(p) ;
-        legend(leg{:}) ;
+        %legend(leg{:}) ;
         grid on ;
       end
     end
@@ -259,14 +257,10 @@ for t=1:params.batchSize:numel(subset)
     if strcmp(mode, 'train')
       net.mode = 'normal' ;
       net.accumulateParamDers = (s ~= 1) ;
-      tic;
       net.eval(inputs, params.derOutputs, 'holdOn', s < params.numSubBatches) ;
-      toc;
     else
       net.mode = 'normal' ;
-      tic;
       net.eval(inputs) ;
-      toc;
     end
   end
 
@@ -460,7 +454,7 @@ function removeSmallestCheckpoint(modelDir)
 % -------------------------------------------------------------------------
 list = dir(fullfile(modelDir, 'net-epoch-*-iter-*.mat')) ;
 if length(list) > 10 % remove the smallest
-  todelete = fullfile(modelDir, list(1).name);
+  todelete = fullfile(modelDir, list(end).name);
   delete(todelete);
 end
 

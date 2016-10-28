@@ -1,4 +1,4 @@
-function [net, info] = cnn_mv1m(varargin)
+function [net, info] = cnn_mv1m_evaluate(varargin)
 %CNN_IMAGENET   Demonstrates training a CNN on ImageNet
 run(fullfile('/home/phuc/Research/danilo/mv1m/matconvnet', 'matlab', 'vl_setupnn.m'));
 
@@ -17,9 +17,11 @@ opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/danilo')
 %opts.expDir = fullfile(vl_rootnn, 'data', ['imagenet12-' sfx]) ;
 [opts, varargin] = vl_argparse(opts, varargin) ;
 
-opts.numFetchThreads = 12 ;
+opts.numFetchThreads = 8 ;
 opts.lite = false ;
 opts.imdbPath = fullfile(opts.expDir, 'imdb.mat');
+opts.resdb_path = fullfile(opts.expDir, 'resdb.mat');
+opts.model_path = fullfile(opts.expDir, 'net-epoch-1-iter-101000.mat');
 opts.train = struct() ;
 opts = vl_argparse(opts, varargin) ;
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
@@ -28,27 +30,13 @@ if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
 %                                                              Prepare data
 % -------------------------------------------------------------------------
 
-if exist(opts.imdbPath)
-  imdb = load(opts.imdbPath) ;
-  imdb.imageDir = fullfile(opts.dataDir, 'videos');
-else
-  imdb = cnn_mv1m_setup_data('dataDir', opts.dataDir) ;
-  mkdir(opts.expDir) ;
-  save(opts.imdbPath, '-struct', 'imdb') ;
-end
+imdb = load(opts.imdbPath) ;
+imdb.imageDir = fullfile(opts.dataDir, 'videos');
 
 % Compute image statistics (mean, RGB covariances, etc.)
 imageStatsPath = fullfile(opts.expDir, 'imageStats.mat') ;
 if exist(imageStatsPath)
   load(imageStatsPath, 'averageImage', 'rgbMean', 'rgbCovariance') ;
-else
-  train = find(imdb.images.set == 1) ;
-  images = fullfile(imdb.imageDir, imdb.images.name(train(1:50:end))) ;
-  [averageImage, rgbMean, rgbCovariance] = getImageStats(images, ...
-    'imageSize', [256 256], ...
-    'numThreads', opts.numFetchThreads, ...
-    'gpus', opts.train.gpus) ;
-  save(imageStatsPath, 'averageImage', 'rgbMean', 'rgbCovariance') ;
 end
 [v,d] = eig(rgbCovariance) ;
 rgbDeviation = v*sqrt(d) ;
@@ -65,15 +53,6 @@ if isempty(opts.network)
                                  'colorDeviation', rgbDeviation, ...
                                  'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
-
-    otherwise
-      net = cnn_imagenet_init('model', opts.modelType, ...
-                              'batchNormalization', opts.batchNormalization, ...
-                              'weightInitMethod', opts.weightInitMethod, ...
-                              'networkType', opts.networkType, ...
-                              'averageImage', rgbMean, ...
-                              'colorDeviation', rgbDeviation, ...
-                              'classNames', imdb.classes.name);
   end
 else
   net = opts.network ;
@@ -84,17 +63,13 @@ end
 %                                                                     Learn
 % -------------------------------------------------------------------------
 
-switch opts.networkType
-  case 'simplenn', trainFn = @cnn_train ;
-  case 'dagnn', trainFn = @cnn_train_dag ;
-end
-
-[net, info] = trainFn(net, imdb, getBatchFn(opts, net.meta), ...
+cnn_eval_dag(net, imdb, getBatchFn(opts, net.meta), ...
   'expDir', opts.expDir, ...
+  'resdb_path', opts.resdb_path,...
+  'model_path', opts.model_path,...
   'prefetch', true, ...
-  'nesterovUpdate', true, ...
-  net.meta.trainOpts, ...
-  opts.train) ;
+  opts.train, ...
+  net.meta.trainOpts);
 
 % -------------------------------------------------------------------------
 function fn = getBatchFn(opts, meta)
@@ -141,7 +116,8 @@ num_frames = 5;
 video_paths = images;
 all_files = cell(length(video_paths),1);
 for video_index = 1:length(video_paths)
-  files = extract_frames(video_paths{video_index});
+  files = extract_frames(video_paths{video_index},...
+    'dest_dir', '/mnt/large/pxnguyen/vine-images-test');
   all_files{video_index} = files(1:num_frames);
 end
 all_files = cat(2, all_files{:});

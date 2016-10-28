@@ -21,6 +21,8 @@ opts.parameterServer.prefix = 'mcn' ;
 opts.derOutputs = {'objective', 1} ;
 opts.extractStatsFn = @extractStats ;
 opts.plotStatistics = true;
+opts.resdb_path = fullfile(opts.expDir, 'resdb.mat') ;
+opts.model_path = fullfile(opts.expDir, 'net-epoch-1-iter-101000.mat');
 opts = vl_argparse(opts, varargin) ;
 opts.batchSize = 16;
 
@@ -31,35 +33,47 @@ if isnan(opts.train), opts.train = [] ; end
 if isnan(opts.val), opts.val = [] ; end
 prepareGPUs(opts, true) ;
 
-modelPath = @(ep, iter) fullfile(opts.expDir, sprintf('net-epoch-%d-iter-%d.mat', ep, iter));
-modelFigPath = fullfile(opts.expDir, 'net-train.pdf') ;
+[net, state, stats] = loadState(opts.model_path) ;
 
-[start_epoch, start_iter] = findLastCheckpoint(opts.expDir) ;
-if start_epoch >= 1 && start_iter >= 1
-  fprintf('%s: resuming by loading epoch %d iter %d\n', mfilename, start_epoch, start_iter) ;
-  [net, state, stats] = loadState(modelPath(start_epoch, start_iter)) ;
-else
-  state = [] ;
-end
-
-epoch = start_epoch;
 val_random_order = 1:numel(opts.val);
 batchSize = opts.batchSize;
 
 % Train for one epoch.
 params = opts ;
-params.epoch = epoch ;
+params.epoch = 0;
 
 params.val = opts.val(val_random_order);
 params.imdb = imdb ;
 params.getBatch = getBatch ;
-params.start_iter = start_iter;
 
 sel = find(cellfun(@(x) strcmp(x, 'sigmoid'), {net.vars.name}));
 net.vars(sel).precious = 1;
-resdb = processEpoch(net, state, params, 'val') ;
-resdb_filepath = fullfile(opts.expDir, sprintf('resdb-iter-%d.mat', start_iter));
-save(resdb_filepath, '-v7.3', '-struct', 'resdb');
+processEpoch(net, state, params, 'val') ;
+
+list = dir(fullfile(opts.expDir, 'resdb-iter-*-part-*.mat'));
+resdb = struct();
+resdb.names = cell(length(list), 1);
+resdb.predictions = cell(length(list), 1);
+resdb.groundtruths = cell(length(list), 1);
+for list_index = 1:length(list)
+  fprintf('%d/%d\n', list_index, length(list));
+  part_resdb = load(fullfile(opts.expDir, list(list_index).name));
+  part_resdb.predictions = cat(2, part_resdb.predictions{:});
+  resdb.names{list_index} = [part_resdb.name{:}];
+  resdb.predictions{list_index} = part_resdb.predictions;
+  resdb.groundtruths{list_index} = part_resdb.groundtruths;
+  clear part_resdb
+end
+keyboard
+
+resdb.names = cat(2, resdb.names{:});
+resdb.predictions = cat(2, resdb.predictions{:});
+resdb.groundtruths = cat(2, resdb.groundtruths{:});
+resdb.groundtruths(resdb.groundtruths==-1) = 0;
+
+% combine all the saved features
+save(opts.resdb_path, '-v7.3', '-struct', 'resdb');
+
 
 % -------------------------------------------------------------------------
 function resdb = processEpoch(net, state, params, mode)
@@ -96,17 +110,16 @@ stats.time = 0 ;
 start = tic ;
 max_iter = ceil(numel(subset)/params.batchSize);
 batch_index = findLastResultDB(params.expDir);
-if batch_index > 0
-  resdb = load(fullfile(params.expDir,...
-    sprintf('resdb-iter-%d.temp-%d.mat', params.start_iter, batch_index)));
-else
-  resdb = struct();
-  resdb.name = params.imdb.images.name(subset);
-  resdb.predictions = cell(max_iter, 1);
-  resdb.groundtruths = cell(max_iter, 1);
-end
+
+save_iter = 1000;
+resdb = struct();
+resdb.predictions = cell(save_iter, 1);
+resdb.groundtruths = cell(save_iter, 1);
 
 bs = params.batchSize;
+local_batch_index = 1;
+max_batch = ceil(numel(subset)/params.batchSize);
+
 for t=1+batch_index*bs:bs:numel(subset)
   fprintf('%s: epoch %02d: %3d/%3d:', mode, epoch, ...
           fix((t-1)/params.batchSize)+1, ceil(numel(subset)/params.batchSize)) ;
@@ -140,8 +153,10 @@ for t=1+batch_index*bs:bs:numel(subset)
 
     % find the sigmoid layers
     sel = find(cellfun(@(x) strcmp(x, 'sigmoid'), {net.vars.name})) ;
-    resdb.predictions{batch_index+1} = gather(permute(net.vars(sel).value, [3 4 1 2]));
-    resdb.groundtruths{batch_index+1} = gather(permute(inputs{end}, [3 4 1 2]));
+    resdb.name{local_batch_index} = params.imdb.images.name(batch);
+    resdb.predictions{local_batch_index} = gather(permute(net.vars(sel).value, [3 4 1 2]));
+    resdb.groundtruths{local_batch_index} = gather(permute(inputs{end}, [3 4 1 2]));
+    local_batch_index = local_batch_index + 1;
   end
 
   batch_index = batch_index + 1;
@@ -167,19 +182,22 @@ for t=1+batch_index*bs:bs:numel(subset)
   end
   fprintf('\n') ;
 
-  if mod(batch_index, 500) == 0 || t == numel(subset)
+  cur_batch = fix((t-1)/params.batchSize)+1;
+  if mod(batch_index, save_iter) == 0 || cur_batch == max_iter
     fprintf('Saving the intermediate resdb\n');
-    resdb_filepath = fullfile(params.expDir,...
-        sprintf('resdb-iter-%d.temp-%d.mat', params.start_iter, batch_index));
-    keyboard
-    save(resdb_filepath, '-v7.3', '-struct', 'resdb');
+    [path, name, ext] = fileparts(params.resdb_path);
+    resdb_temp_filepath = fullfile(path,...
+      [name sprintf('-part-%05d', batch_index) ext]);
+    save(resdb_temp_filepath, '-struct', 'resdb');
+
+    % reset the counter
+    local_batch_index = 1;
+    resdb.predictions = cell(save_iter, 1);
+    resdb.groundtruths = cell(save_iter, 1);
   end
-
-
 end
 
-resdb.predictions = cat(2, resdb.predictions{:});
-resdb.groundtruths = cat(2, resdb.groundtruths{:});
+% done need to save the files
 
 % Save back to state.
 state.stats.(mode) = stats ;
@@ -261,13 +279,12 @@ end
 % -------------------------------------------------------------------------
 function batch_index = findLastResultDB(modelDir)
 % -------------------------------------------------------------------------
-pat = 'resdb-iter-*.temp-*.mat';
+pat = 'resdb-iter-*-part-*.mat';
 list = dir(fullfile(modelDir, pat)) ;
-tokens = regexp({list.name}, 'resdb-iter-([\d]+).temp-([\d]+).mat', 'tokens') ;
+tokens = regexp({list.name}, 'resdb-iter-([\d]+)-part-([\d]+).mat', 'tokens') ;
 iter = cellfun(@(x) sscanf(x{1}{1}, '%d'), tokens) ;
 batch_index = cellfun(@(x) sscanf(x{1}{2}, '%d'), tokens) ;
 batch_index = max([batch_index 0]);
-
 
 % -------------------------------------------------------------------------
 function switchFigure(n)
