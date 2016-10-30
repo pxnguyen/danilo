@@ -34,6 +34,7 @@ opts.plotStatistics = true;
 opts.iter_per_epoch = 20000;
 opts.iter_per_save = 1000;
 opts = vl_argparse(opts, varargin) ;
+opts
 
 if ~exist(opts.expDir, 'dir'), mkdir(opts.expDir) ; end
 if isempty(opts.train), opts.train = find(imdb.images.set==1) ; end
@@ -70,7 +71,6 @@ else
 end
 
 epoch = start_epoch;
-done = false;
 current_iter = start_iter;
 val_random_order = randperm(numel(opts.val));
 batchSize = opts.batchSize;
@@ -78,6 +78,8 @@ iter_per_epoch = opts.iter_per_epoch;
 iter_per_save = opts.iter_per_save;
 max_iter = ceil(numel(opts.train)/opts.batchSize);
 iter_per_save = min(iter_per_save, max_iter);
+prepareGPUs(opts, true) ;
+done = false;
 while ~done
   % Set the random seed based on the epoch and opts.randomSeed.
   % This is important for reproducibility, including when training
@@ -99,7 +101,7 @@ while ~done
 
   train_random_order = randperm(numel(opts.train));
   params.train = opts.train(train_random_order(1:min(iter_per_save*batchSize, numel(train_random_order)))) ; % shuffle
-  params.val = opts.val(val_random_order(1:min(2000, numel(val_random_order))));
+  params.val = opts.val(val_random_order(1:min(4000, numel(val_random_order))));
   params.imdb = imdb ;
   params.getBatch = getBatch ;
   params.current_iter = current_iter;
@@ -499,7 +501,7 @@ if numGpus >= 1 && cold
   fprintf('%s: resetting GPU\n', mfilename)
   clearMex() ;
   if numGpus == 1
-    gpuDevice(opts.gpus)
+    gpuDevice(opts.gpus(1))
   else
     spmd
       clearMex() ;

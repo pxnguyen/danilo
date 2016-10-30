@@ -1,4 +1,4 @@
-function run_ari_full
+function run_ari_small
 run(fullfile('matconvnet', 'matlab', 'vl_setupnn.m'))
 addpath(genpath('MexConv3D'))
 [~,hostname] = system('hostname');
@@ -12,7 +12,7 @@ switch hostname
     opts.expDir = '/home/nguyenpx/cnn_exp/ari_small';
     opts.frame_dir = '/scratch/nguyenpx/vine-images/';
     opts.dataDir = '/home/nguyenpx/vine-large-2';
-    opts.pretrained_path = '/home/nguyenpx/pretrained_models';
+    opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
 end
 opts.imdbPath = fullfile(opts.expDir, 'ari_small_imdb.mat');
 opts.train = struct();

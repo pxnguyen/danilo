@@ -71,7 +71,6 @@ while ~done
         end
       else % return random images
         fprintf('Outputing random images\nq');
-        fwrite(fid, sprintf('%s\n', [name ext]));
         for i=1:length(opts.min_num_frame) + 5
           random_image = uint8(randi(255, [opts.imageSize 3]));
           to_file = fullfile(opts.dest_dir, [name ext], sprintf('image-%03d.jpeg', i));

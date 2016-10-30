@@ -27,7 +27,7 @@ net.meta.classes.name = opts.classNames ;
 
 net.meta.inputSize = {'input', [net.meta.normalization.imageSize 32]} ;
 
-lr = [0.00001 * ones(1, 20000), 0.000001*ones(1, 20000), 0.0000001*ones(1, 20000)];
+lr = [0.00001 * ones(1, 80000), 0.000001*ones(1, 80000), 0.0000001*ones(1, 80000)];
 net.meta.trainOpts.learningRate = lr ;
 net.meta.trainOpts.numEpochs = numel(lr) ;
 net.meta.trainOpts.momentum = 0.9 ;

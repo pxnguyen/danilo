@@ -16,7 +16,7 @@ switch hostname
 end
 opts.imdbPath = fullfile(opts.expDir, 'ari_full_imdb.mat');
 opts.train = struct();
-opts.train.gpus = [1];
+opts.train.gpus = [2];
 opts.iter_per_epoch = 20000;
 opts.iter_per_save = 1000;
 cnn_mv1m(opts);
