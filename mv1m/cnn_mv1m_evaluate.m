@@ -1,7 +1,5 @@
 function [net, info] = cnn_mv1m_evaluate(varargin)
 %CNN_IMAGENET   Demonstrates training a CNN on ImageNet
-run(fullfile('/home/phuc/Research/danilo/mv1m/matconvnet', 'matlab', 'vl_setupnn.m'));
-
 opts.dataDir = '/mnt/large/pxnguyen/vine-large-2/';
 opts.modelType = 'resnet-50' ;
 opts.network = [] ;
@@ -13,8 +11,7 @@ opts.weightInitMethod = 'gaussian' ;
 sfx = opts.modelType ;
 if opts.batchNormalization, sfx = [sfx '-bnorm'] ; end
 sfx = [sfx '-' opts.networkType] ;
-opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/danilo')
-%opts.expDir = fullfile(vl_rootnn, 'data', ['imagenet12-' sfx]) ;
+opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/danilo');
 [opts, varargin] = vl_argparse(opts, varargin) ;
 
 opts.numFetchThreads = 8 ;
@@ -25,6 +22,7 @@ opts.model_path = fullfile(opts.expDir, 'net-epoch-1-iter-101000.mat');
 opts.train = struct() ;
 opts = vl_argparse(opts, varargin) ;
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
+opts
 
 % -------------------------------------------------------------------------
 %                                                              Prepare data
