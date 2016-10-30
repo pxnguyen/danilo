@@ -8,6 +8,7 @@ switch hostname
   case 'pi'
     opts.expDir = '/mnt/large/pxnguyen/cnn_exp/ari_full';
     opts.frame_dir = '/tmp/vine-images/'
+    opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
   case 'omega'
     opts.expDir = '/home/nguyenpx/cnn_exp/ari_full';
     opts.frame_dir = '/scratch/nguyenpx/vine-images/';

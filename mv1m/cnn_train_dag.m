@@ -459,8 +459,9 @@ end
 function removeSmallestCheckpoint(modelDir)
 % -------------------------------------------------------------------------
 list = dir(fullfile(modelDir, 'net-epoch-*-iter-*.mat')) ;
+[~, idx] = sort([list.datenum]);
 if length(list) > 10 % remove the smallest
-  todelete = fullfile(modelDir, list(end).name);
+  todelete = fullfile(modelDir, list(idx(1)).name);
   delete(todelete);
 end
 
