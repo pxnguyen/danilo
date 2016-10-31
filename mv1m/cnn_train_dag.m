@@ -31,7 +31,7 @@ opts.parameterServer.prefix = 'mcn' ;
 opts.derOutputs = {'objective', 1} ;
 opts.extractStatsFn = @extractStats ;
 opts.plotStatistics = true;
-opts.iter_per_epoch = 20000;
+opts.iter_per_epoch = 80000;
 opts.iter_per_save = 1000;
 opts = vl_argparse(opts, varargin) ;
 
@@ -99,7 +99,7 @@ while ~done
 
   train_random_order = randperm(numel(opts.train));
   params.train = opts.train(train_random_order(1:min(iter_per_save*batchSize, numel(train_random_order)))) ; % shuffle
-  params.val = opts.val(val_random_order(1:min(2000, numel(val_random_order))));
+  params.val = opts.val(val_random_order(1:min(8000, numel(val_random_order))));
   params.imdb = imdb ;
   params.getBatch = getBatch ;
   params.current_iter = current_iter;

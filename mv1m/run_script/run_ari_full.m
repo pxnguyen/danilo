@@ -18,6 +18,6 @@ end
 opts.imdbPath = fullfile(opts.expDir, 'ari_full_imdb.mat');
 opts.train = struct();
 opts.train.gpus = [1];
-opts.iter_per_epoch = 20000;
-opts.iter_per_save = 1000;
+opts.iter_per_epoch = 80000;
+opts.iter_per_save = 2000;
 cnn_mv1m(opts);
