@@ -18,8 +18,18 @@ end
 opts.imdbPath = fullfile(opts.expDir, sprintf('%s_imdb.mat', exp_name));
 opts.train = struct();
 opts.train.gpus = gpus;
-opts.iter_per_epoch = 80000;
-opts.iter_per_save = 2000;
 switch exp_name
+  case 'ari_full'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
+  case 'ari_half'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 40000), 5e-6*ones(1, 40000), 5e-7*ones(1, 40000)];
+  case 'ari_small'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 20000), 5e-6*ones(1, 40000), 4e-7*ones(1, 40000)];
 end
 cnn_mv1m(opts);

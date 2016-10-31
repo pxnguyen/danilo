@@ -162,15 +162,14 @@ while ~done
           leg{end+1} = f ;
         end
         if strcmp(f, 'train')
-          subplot(2, numel(plots), find(strcmp(p,plots))) ;
+          subplot(2, numel(plots)+1, find(strcmp(p,plots))) ;
           plot(stats.iter_recorded, values','-') ;
         else
-          subplot(2, numel(plots), find(strcmp(p,plots))+num_plots) ;
+          subplot(2, numel(plots)+1, find(strcmp(p,plots))+num_plots) ;
           plot(stats.iter_recorded, values','r-') ;
         end
         xlabel('iterations') ;
         title(p) ;
-        %legend(leg{:}) ;
         grid on ;
       end
     end
