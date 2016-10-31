@@ -12,6 +12,7 @@ sfx = opts.modelType ;
 if opts.batchNormalization, sfx = [sfx '-bnorm'] ; end
 sfx = [sfx '-' opts.networkType] ;
 opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/danilo');
+opts.frame_dir = '';
 [opts, varargin] = vl_argparse(opts, varargin) ;
 
 opts.numFetchThreads = 8 ;
@@ -19,10 +20,10 @@ opts.lite = false ;
 opts.imdbPath = fullfile(opts.expDir, 'imdb.mat');
 opts.resdb_path = fullfile(opts.expDir, 'resdb.mat');
 opts.model_path = fullfile(opts.expDir, 'net-epoch-1-iter-101000.mat');
+opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
 opts.train = struct() ;
 opts = vl_argparse(opts, varargin) ;
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
-opts
 
 % -------------------------------------------------------------------------
 %                                                              Prepare data
@@ -49,6 +50,7 @@ if isempty(opts.network)
     case 'resnet-50'
       net = cnn_mv1m_init_resnet('averageImage', rgbMean, ...
                                  'colorDeviation', rgbDeviation, ...
+				 'pretrained_path', opts.pretrained_path, ...
                                  'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
   end
@@ -89,6 +91,8 @@ bopts.test = struct(...
   'cropSize', meta.normalization.cropSize, ...
   'subtractAverage', mu) ;
 
+bopts.frame_dir = opts.frame_dir;
+
 % Copy the parameters for data augmentation
 bopts.train = bopts.test ;
 for f = fieldnames(meta.augmentation)'
@@ -115,7 +119,7 @@ video_paths = images;
 all_files = cell(length(video_paths),1);
 for video_index = 1:length(video_paths)
   files = extract_frames(video_paths{video_index},...
-    'dest_dir', '/mnt/large/pxnguyen/vine-images-test');
+    'dest_dir', opts.frame_dir);
   all_files{video_index} = files(1:num_frames);
 end
 all_files = cat(2, all_files{:});

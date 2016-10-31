@@ -7,6 +7,7 @@ opts.averageImage = zeros(3,1) ;
 opts.colorDeviation = zeros(3) ;
 opts.cudnnWorkspaceLimit = 1024*1024*1204 ; % 1GB
 opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
+opts.learning_schedule = [1e-5 * ones(1, 80000), 1e-6*ones(1, 80000), 1e-7*ones(1, 80000)];
 opts = vl_argparse(opts, varargin) ;
 
 net = dagnn.DagNN.loadobj(load(opts.pretrained_path));
@@ -27,7 +28,7 @@ net.meta.classes.name = opts.classNames ;
 
 net.meta.inputSize = {'input', [net.meta.normalization.imageSize 32]} ;
 
-lr = [0.00001 * ones(1, 80000), 0.000001*ones(1, 80000), 0.0000001*ones(1, 80000)];
+lr = opts.learning_schedule;
 net.meta.trainOpts.learningRate = lr ;
 net.meta.trainOpts.numEpochs = numel(lr) ;
 net.meta.trainOpts.momentum = 0.9 ;
