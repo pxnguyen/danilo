@@ -28,7 +28,6 @@ end
 
 [~, name, ext] = fileparts(vid_path);
 frame_tmpdir = fullfile(opts.dest_dir, [name ext]);
-
 if ~opts.force
   if exist(frame_tmpdir, 'dir') && length(dir(fullfile(frame_tmpdir, '*.jpeg'))) > opts.min_num_frame
     files = dir(fullfile(frame_tmpdir, '*.jpeg'));
