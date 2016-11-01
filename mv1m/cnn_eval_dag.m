@@ -50,6 +50,7 @@ sel = find(cellfun(@(x) strcmp(x, 'sigmoid'), {net.vars.name}));
 net.vars(sel).precious = 1;
 processEpoch(net, state, params, 'val') ;
 
+fprintf('Combinging all the resdb\n');
 list = dir(fullfile(opts.expDir, 'resdb-iter-*-part-*.mat'));
 resdb = struct();
 resdb.names = cell(length(list), 1);
@@ -61,10 +62,9 @@ for list_index = 1:length(list)
   part_resdb.predictions = cat(2, part_resdb.predictions{:});
   resdb.names{list_index} = [part_resdb.name{:}];
   resdb.predictions{list_index} = part_resdb.predictions;
-  resdb.groundtruths{list_index} = part_resdb.groundtruths;
+  resdb.groundtruths{list_index} = cat(2, part_resdb.groundtruths{:});
   clear part_resdb
 end
-keyboard
 
 resdb.names = cat(2, resdb.names{:});
 resdb.predictions = cat(2, resdb.predictions{:});

@@ -10,7 +10,7 @@ switch hostname
     opts.frame_dir = '/tmp/vine-images/'
     opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
   case 'omega'
-    opts.expDir = full('/home/nguyenpx/cnn_exp/', exp_name);
+    opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
     opts.frame_dir = '/scratch/nguyenpx/vine-images/';
     opts.dataDir = '/home/nguyenpx/vine-large-2';
     opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';

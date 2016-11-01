@@ -23,11 +23,12 @@ body {
 
 .tooltip {
   position: absolute;
-  width: 100px;
-  height: 42px;
+  width: 140px;
+  height: 32px;
   border-width: 1px;
   border-style: solid;
-  background-color: white;
+  color: red;
+  background-color: rgba(255, 255, 255, 0.8);
   pointer-events: none;
 }
 </style>
@@ -47,25 +48,19 @@ var margin = {top: 20, right: 20, bottom: 30, left: 40},
  */ 
 
 // setup x 
-var xValue = function(d) { return d.danilo_num_tr;}, // data -> value
+var numTrainValue = function(d) { return d.num_train;}, // data -> value
     xScale = d3.scale.log().domain([0, 11110]).range([0, width]), // value -> display
-    xMap = function(d) { return xScale(xValue(d));}, // data -> display
+    xMap = function(d) { return xScale(numTrainValue(d));}, // data -> display
     xAxis = d3.svg.axis().scale(xScale).orient("bottom");
 
 // setup y
-var yValue = function(d) { return d.danilo_AP;}, // data -> value
+var APValue = function(d) { return d.AP;}, // data -> value
     yScale = d3.scale.log().range([height, 0]), // value -> display
-    yMap = function(d) { return yScale(yValue(d));}, // data -> display
+    yMap = function(d) { return yScale(APValue(d));}, // data -> display
     yAxis = d3.svg.axis().scale(yScale).orient("left");
 
-var small_xValue = function(d) { return d.danilito_num_tr;}, // data -> value
-    small_xMap = function(d) { return xScale(small_xValue(d));}; // data -> display
-
-var small_yValue = function(d) { return d.danilito_AP;}, // data -> value
-    small_yMap = function(d) { return yScale(small_yValue(d));}; // data -> display
-
 // setup fill color
-var cValue = function(d) { return d.Manufacturer;},
+var cValue = function(d) { return d.dataset;},
     color = d3.scale.category10();
 
 // add the graph canvas to the body of the webpage
@@ -77,18 +72,15 @@ var svg = d3.select("body").append("svg")
 
 // add the tooltip area to the webpage
 var tooltip = d3.select("body").append("div")
-    .attr("class", "tooltip")
-    .style("opacity", 1);
+    .attr("class", "tooltip");
 
 // load data
 d3.csv("ap.csv", function(error, data) {
 
   // change string (from CSV) into number format
   data.forEach(function(d) {
-    d["danilo_num_tr"] = +d["danilo_num_tr"];
-    d["danilo_AP"] = +d["danilo_AP"];
-    d["danilito_num_tr"] = +d["danilito_num_tr"];
-    d["danilito_AP"] = +d["danilito_AP"];
+    d["num_train"] = +d["num_train"];
+    d["AP"] = +d["AP"];
     //console.log(d);
   });
 
@@ -120,92 +112,55 @@ d3.csv("ap.csv", function(error, data) {
       .style("text-anchor", "end")
       .text("AP");
 
+  d3.selection.prototype.moveToFront = function() {
+    return this.each(function(){
+        this.parentNode.appendChild(this);
+    });
+  };
+
   // draw dots
   svg.selectAll(".dot")
       .data(data)
     .enter().append("circle")
       .attr("class", "dot")
-      .attr("r", 4)
-      .attr("cx", small_xMap)
-      .attr("cy", small_yMap)
-      .style("fill", 'blue')
-      .on("mouseover", function(d) {
-          tooltip.transition()
-               .style('visibility', 'visible')
-               .duration(20);
-          tooltip.html(d["Tag Name"] + "<br/> (" + small_xValue(d) + ", " + small_yValue(d) + ")"
-            + " <br/> (" + xValue(d) + ", " + yValue(d) + ")")
-               .style("left", (d3.event.pageX + 16) + "px")
-               .style("top", (d3.event.pageY - 50) + "px");
-          line.style('visibility', 'visible')
-               .attr("x1", xMap(d))
-               .attr("y1", yMap(d))
-               .attr("x2", small_xMap(d))
-               .attr("y2", small_yMap(d));
-      })
-      .on("mouseout", function(d) {
-          tooltip.transition()
-               .duration(50)
-               .style("visibility", "hidden");
-      });
-
-  // draw dots
-  svg.selectAll(".dot2")
-      .data(data)
-    .enter().append("circle")
-      .attr("class", "dot")
+      .attr("class", function (d) { return "dot " + d["tag"].substring(1) + " " + d['dataset']; })
       .attr("r", 4)
       .attr("cx", xMap)
       .attr("cy", yMap)
-      .style("fill", 'red')
+      .style("fill", function (d) {return color(cValue(d));})
       .on("mouseover", function(d) {
           tooltip.transition()
-               .style('visibility', 'visible')
-               .duration(20);
-          tooltip.html(d["Tag Name"] + "<br/> (" + xValue(d) 
-	        + ", " + yValue(d) + ")")
-               .style("left", (d3.event.pageX + 16) + "px")
-               .style("top", (d3.event.pageY - 50) + "px");
-          line.style('visibility', 'visible')
+            .style('visibility', 'visible')
+            .duration(20);
+          tooltip.html(d["tag"] + "<br/> (" + numTrainValue(d) + ", " + APValue(d) + ")" )
+            .style("left", (d3.event.pageX + 16) + "px")
+            .style("top", (d3.event.pageY - 25) + "px");
+
+          d3.selectAll("."+d["tag"].substring(1)).each( function(d, i){
+            d3.select(this).attr("r", 9)
+                .style("stroke-width", 5)
+                .style("stroke", "red")
+                .moveToFront();
+          });
+
+          /*line.style('visibility', 'visible')
                .attr("x1", xMap(d))
                .attr("y1", yMap(d))
                .attr("x2", small_xMap(d))
-               .attr("y2", small_yMap(d));
+               .attr("y2", small_yMap(d))*/
       })
       .on("mouseout", function(d) {
           tooltip.transition()
                .duration(50)
                .style("visibility", "hidden");
+          d3.selectAll("."+d["tag"].substring(1)).each( function(d, i){
+            d3.select(this).attr("r", 4)
+                .style("fill", color(cValue(d)))
+                .style("stroke-width", 1)
+                .style("stroke", 'black');
+          });
 
       });
-
-  // draw dots
-  /*
-  svg.selectAll(".dot")
-      .data(data)
-    .enter().append("circle")
-      .attr("class", "dot")
-      .attr("r", 3)
-      .attr("cx", danilito_numtr_Map)
-      .attr("cy", small_yValue)
-      .style("fill", 'red')
-      .on("mouseover", function(d) {
-          tooltip.transition()
-               .style('visibility', 'visible')
-               .duration(20);
-          tooltip.html(d["Tag Name"] + "<br/> (" + danilito_num_tr(d)
-	        + ", " + danilito_AP(d) + ")")
-               .style("left", (d3.event.pageX + 5) + "px")
-               .style("top", (d3.event.pageY - 28) + "px");
-      })
-      .on("mouseout", function(d) {
-          tooltip.transition()
-               .duration(50)
-               .style("visibility", "hidden");
-      });
-      */
-
-
 
   svg.append("line")
     .attr('class', 'chance_line')
@@ -221,6 +176,28 @@ d3.csv("ap.csv", function(error, data) {
     .style("stroke", "magenta")
     .style("stroke-width", 5)
     .style("visibility", "visible");
+
+  // draw legend
+  var legend = svg.selectAll(".legend")
+      .data(color.domain())
+    .enter().append("g")
+      .attr("class", "legend")
+      .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+  // draw legend colored rectangles
+  legend.append("rect")
+      .attr("x", width - 18)
+      .attr("width", 18)
+      .attr("height", 18)
+      .style("fill", color);
+
+  // draw legend text
+  legend.append("text")
+      .attr("x", width - 24)
+      .attr("y", 9)
+      .attr("dy", ".35em")
+      .style("text-anchor", "end")
+      .text(function(d) { return d;})
 
 });
 
