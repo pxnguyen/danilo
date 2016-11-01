@@ -2,9 +2,19 @@ function run_eval(exp_name)
 run('matconvnet/matlab/vl_setupnn.m');
 addpath(genpath('MexConv3D'))
 opts = struct();
-opts.train = struct();
-opts.train.gpus = [1];
-opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp', exp_name);
+[~, hostname] = system('hostname');
+hostname = strtrim(hostname);
+switch hostname
+  case 'pi'
+    opts.expDir = fullfile('mnt/large/pxnguyen/cnn_exp/', exp_name);
+    opts.frame_dir = '/tmp/vine-images/'
+    opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
+  case 'omega'
+    opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
+    opts.frame_dir = '/home/nguyenpx/vine-images/';
+    opts.dataDir = '/home/nguyenpx/vine-large-2';
+    opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
+end
 opts.imdbPath = fullfile(opts.expDir,...
   sprintf('%s_imdb.mat', exp_name));
 
@@ -15,7 +25,9 @@ opts.resdb_path = fullfile(opts.expDir,...
   sprintf('resdb-iter-%d.mat', iter));
 opts.model_path = fullfile(opts.expDir,...
   sprintf('net-epoch-%d-iter-%d.mat', epoch, iter));
-opts
+
+opts.train = struct();
+opts.train.gpus = [1];
 
 % extracting the features
 if ~exist(opts.resdb_path, 'file')
