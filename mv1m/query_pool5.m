@@ -41,7 +41,7 @@ for tag_index = 1:numel(ari_small_imdb.classes.name)
   keyboard
 
   %distance_to_db = vl_alldist(centroid, pool5_db, 'L2');
-  filtered_distance = prob(resdb_tag_index, candidates);
+  filtered_distance = prob(tag_index, candidates);
   filtered_names = database_names(candidates);
   [~, sorted_indeces] = sort(filtered_distance, 'descend');
   keyboard

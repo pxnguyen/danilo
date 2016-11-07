@@ -7,7 +7,7 @@ opts = struct();
 switch hostname
   case 'pi'
     opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/', exp_name);
-    opts.frame_dir = '/tmp/vine-images/'
+    opts.frame_dir = '/mnt/hermes/nguyenpx/vine-images/'
     opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
   case 'omega'
     opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
@@ -20,6 +20,10 @@ opts.train = struct();
 opts.train.gpus = gpus;
 switch exp_name
   case 'ari_full'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
+  case 'ari_full_nospam'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
     opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
