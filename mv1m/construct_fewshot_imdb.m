@@ -16,9 +16,9 @@ for i = 1:numel(selected_tags)
   class_indeces = imdb.images.label(tag_index, :);
   train_class_indeces = find(class_indeces & train_indeces);
   random_order = randperm(numel(train_class_indeces));
-  if strcmp(ari_type, 'full')
+  if strcmp(ari_type, 'ari_full')
     num_take = ceil(numel(random_order));
-  elseif strcmp(ari_type, 'small')
+  elseif strcmp(ari_type, 'ari_small')
     num_take = ceil(numel(random_order)/10);
   end
   fprintf('%d %s %d\n', i, imdb.classes.name{tag_index}, num_take);
@@ -44,6 +44,6 @@ new_imdb.images.name = horzcat(new_imdb.images.name, eval_names) ;
 new_imdb.images.set = horzcat(new_imdb.images.set, 2*ones(1,numel(eval_names))) ;
 new_imdb.images.label = horzcat(new_imdb.images.label, eval_labels) ;
 
-ari_dir = '/mnt/large/pxnguyen/cnn_exp/ari/';
-new_imdb_path = fullfile(ari_dir, sprintf('ari_%s_imdb.mat', ari_type));
+ari_dir = sprintf('/mnt/large/pxnguyen/cnn_exp/%s/', ari_type);
+new_imdb_path = fullfile(ari_dir, sprintf('%s_imdb.mat', ari_type));
 save(new_imdb_path, '-struct', 'new_imdb');

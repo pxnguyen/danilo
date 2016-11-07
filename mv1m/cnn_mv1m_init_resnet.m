@@ -42,7 +42,6 @@ net.meta.trainOpts.weightDecay = 0.0001 ;
 
 % remove 'prob'
 net.removeLayer(net.layers(end).name);
-
 [h, w, in, out] = size(zeros(net.layers(end).block.size));
 out = numel(net.meta.classes.name);
 

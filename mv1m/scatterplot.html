@@ -143,10 +143,11 @@ d3.csv("ap.csv", function(error, data) {
                 .moveToFront();
           });
 
-          /*line.style('visibility', 'visible')
-               .attr("x1", xMap(d))
-               .attr("y1", yMap(d))
-               .attr("x2", small_xMap(d))
+          // get the chance AP here
+          line.style('visibility', 'visible')
+               .attr("x1", xScale(0.0000001))
+               .attr("y1", xSa(d))
+               .attr("x2", xScale(7200))
                .attr("y2", small_yMap(d))*/
       })
       .on("mouseout", function(d) {
@@ -166,8 +167,8 @@ d3.csv("ap.csv", function(error, data) {
     .attr('class', 'chance_line')
     .style("stroke", "green")
     .style("z-index", 100)
-    .attr("x1", xScale(0.000000000001))
-    .attr("y1", yScale(0.000000000001))
+    .attr("x1", xScale(0.000000000000001))
+    .attr("y1", yScale(0.000000000000001))
     .attr("x2", xScale(7296))
     .attr("y2", yScale(0.0397));
 
