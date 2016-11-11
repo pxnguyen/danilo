@@ -1,66 +1,98 @@
-function query_pool5(resdb)
+function query_pool5(resdb, varargin)
 run('~/Research/vlfeat-0.9.20/toolbox/vl_setup.m');
+opts = struct();
+opts.start_exp = 'ari_nospam_small';
+opts.database = 'danilo_nospam';
+opts = vl_argparse(opts, varargin) ;
 root_exp_dir = '/mnt/large/pxnguyen/cnn_exp/';
-ari_small_dir = fullfile(root_exp_dir, 'ari_small');
-danilo_dir = fullfile(root_exp_dir, 'danilo');
+start_dir = fullfile(root_exp_dir, opts.start_exp);
+database_dir = fullfile(root_exp_dir, opts.database);
 
 fprintf('Loading the imdbs...\n');
-ari_small_imdb = load(fullfile(ari_small_dir, 'ari_small_imdb.mat'));
-danilo_imdb = load(fullfile(danilo_dir, 'danilo_imdb.mat'));
-%[epoch, iter] = findLastCheckpoint(danilo_dir);
+start_imdb = load(fullfile(start_dir, sprintf('%s_imdb.mat', opts.start_exp)));
+database_imdb = load(fullfile(database_dir, sprintf('%s_imdb.mat', opts.database)));
+fprintf('Done\n')
 
-%fprintf('Loading the database...\n');
-%opts.resdb_path = fullfile(danilo_dir,...
-%  sprintf('resdb-pool5-model-%s-dataset-%s-iter-%d.mat', 'ari_small', database, iter));
-%keyboard
-%resdb = load(opts.resdb_path);
-resdb.video_ids = cat(2, resdb.video_ids{:});
-labels = danilo_imdb.images.label(:, resdb.video_ids);
+% compute the difference in training examples
+% this is going to be amount to add
+fprintf('Computing the amount to add\n');
+diff_counts = compute_train_diff(start_imdb, database_imdb);
+fprintf('Done\n')
 
-% load the centroids
-kmeans = load('kmeanres_ari_small.mat');
-prob = resdb.sigmoid.outputs;
+database_labels = database_imdb.images.label(:, resdb.video_ids);
+%resdb_labels = database_imdb.images.label(:, resdb.video_ids);
+
+kmeans = load(sprintf('kmeanres_%s.mat', opts.start_exp));
+database_pool5 = resdb.pool5.outputs;
+prob = resdb.sigmoid.outputs; % the probability belonging to a tag
 database_names = resdb.names;
-database_tags = danilo_imdb.classes.name;
-added_names = cell(numel(ari_small_imdb.classes.name), 1);
-added_labels = cell(numel(ari_small_imdb.classes.name), 1);
-for tag_index = 1:numel(ari_small_imdb.classes.name)
-  tag_name = ari_small_imdb.classes.name{tag_index};
-  centroid = kmeans.centroids{tag_index};
+database_tags = database_imdb.classes.name;
+added_names = cell(numel(start_imdb.classes.name), 1);
+added_labels = cell(numel(start_imdb.classes.name), 1);
+for tag_index = 1:numel(start_imdb.classes.name)
+  tag_name = start_imdb.classes.name{tag_index};
 
-  ari_labels = boolean(ari_small_imdb.images.label(tag_index, :));
-  ari_small_names = ari_small_imdb.images.name(ari_labels);
-  [~, ~, database_overlap_index] = intersect(ari_small_names, database_names);
-
+  % candidates to be add
   candidates = true(numel(database_names), 1);
 
-  resdb_tag_index = strcmp(tag_name, database_tags);
-  same_label = boolean(labels(resdb_tag_index, :));
-  candidates(same_label) = 0; % remove same label
+  % filter out videos already in start
+  start_labels = boolean(start_imdb.images.label(tag_index, :));
+  start_names = start_imdb.images.name(start_labels);
+  [~, ~, database_overlap_index] = intersect(start_names, database_names);
   candidates(database_overlap_index) = 0; % remove overlap
-  keyboard
 
-  %distance_to_db = vl_alldist(centroid, pool5_db, 'L2');
+  % remove videos that have the same label
+  resdb_tag_index = strcmp(tag_name, database_tags);
+  same_label = boolean(database_labels(resdb_tag_index, :));
+  candidates(same_label) = 0; % remove same label
+
+  % abc
+  %centroids = kmeans.centroids{tag_index};
+  %num_centroids = size(centroids, 2);
+  %counts = histcounts(kmeans.assigments{tag_index}, 1:num_centroids+1);
+  %weights = 1./counts; weights = weights';
+  %distance = compute_weighted_distance(centroids, database_pool5, weights);
+
   filtered_distance = prob(tag_index, candidates);
   filtered_names = database_names(candidates);
-  [~, sorted_indeces] = sort(filtered_distance, 'descend');
-  keyboard
-  selected = sorted_indeces(1:50);
-  filtered_distance(selected)
+  [sorted_dist, sorted_indeces] = sort(filtered_distance, 'descend');
+  selected = sorted_indeces(1:max(diff_counts(tag_index), 10));
+  fprintf('%s\n', tag_name);
+  
+
   added_names{tag_index} = filtered_names(selected);
-  added_labels{tag_index} = labels(:, selected);
+  added_labels{tag_index} = database_labels(:, selected);
 end
 
-ari_mod_imdb = ari_small_imdb;
-ari_mod_imdb.images.id = horzcat(ari_mod_imdb.images.id,...
+mod_imdb = start_imdb;
+mod_imdb.images.id = horzcat(mod_imdb.images.id,...
   (1:numel(added_names)) + 1e7 - 1) ;
-ari_mod_imdb.images.name = horzcat(ari_mod_imdb.images.name, added_names) ;
-ari_mod_imdb.images.set = horzcat(ari_mod_imdb.images.set, 1*ones(1,numel(added_names))) ;
-ari_mod_imdb.images.label = horzcat(ari_mod_imdb.images.label, labels') ;
+mod_imdb.images.name = horzcat(mod_imdb.images.name, added_names) ;
+mod_imdb.images.set = horzcat(mod_imdb.images.set, 1*ones(1,numel(added_names))) ;
+mod_imdb.images.label = horzcat(mod_imdb.images.label, labels') ;
 
-ari_mod_dir = '/mnt/large/pxnguyen/cnn_exp/ari_mod';
-ari_mod_imdb_path = fullfile(root_exp_dir, 'ari_mod', 'ari_mod_imdb.mat');
-save(ari_mod_imdb_path, '-struct', 'ari_mod_imdb')
+mod_name = sprintf('%s_mod', opts.start_exp);
+mod_dir = fullfile(root_exp_dir, mod_name);
+mod_imdb_path = fullfile(mod_dir, sprintf('%s_imdb.mat', mod_name));
+save(mod_imdb_path, '-struct', 'mod_imdb')
+
+function diff_counts = compute_train_diff(start_imdb, database_imdb)
+%TODO(phuc): need to find the tags for database_imdb
+start_train = (start_imdb.images.set==1);
+train_counts = sum(start_imdb.images.label(:, start_train), 2);
+
+database_train_indeces = (database_imdb.images.set==1);
+database_tag_indeces = zeros(numel(start_imdb.classes.name), 1);
+for tag_index = 1:length(start_imdb.classes.name)
+  tag_name = start_imdb.classes.name(tag_index);
+  database_tag_indeces(tag_index)= find(strcmp(tag_name, database_imdb.classes.name));
+end
+
+database_counts = sum(database_imdb.images.label(...
+  database_tag_indeces,...
+  database_train_indeces), 2);
+
+diff_counts = database_counts - train_counts;
 
 % -------------------------------------------------------------------------
 function [epoch, iter] = findLastCheckpoint(modelDir)

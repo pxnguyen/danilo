@@ -36,7 +36,6 @@ if ~exist(vid_path, 'file')
   throw(baseException)
 end
 
-
 if ~exist(frame_tmpdir, 'dir') %  make the folder if it doesn't exist
   mkdir(frame_tmpdir);
 end;
