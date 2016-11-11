@@ -26,7 +26,7 @@ switch exp_name
   case 'ari_full_nospam'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
-    opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
+    opts.learning_schedule = [5e-5 * ones(1, 80000), 5e-6*ones(1, 80000), 5e-7*ones(1, 80000)];
   case 'ari_half'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
@@ -35,5 +35,10 @@ switch exp_name
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
     opts.learning_schedule = [5e-5 * ones(1, 20000), 5e-6*ones(1, 40000), 4e-7*ones(1, 40000)];
+  case 'ari_nospam_small'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 20000), 5e-6*ones(1, 40000), 4e-7*ones(1, 40000)];
+
 end
 cnn_mv1m(opts);

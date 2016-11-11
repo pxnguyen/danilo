@@ -19,13 +19,6 @@ opts.min_num_frame = 15;
 opts.max_num_retry = 5;
 opts = vl_argparse(opts, varargin);
 
-if ~exist(vid_path, 'file')
-  msgID = 'extractFrames:FILENOTFOUND';
-  msg = sprintf('Can not find %s', vid_path);
-  baseException = MException(msgID, msg);
-  throw(baseException)
-end
-
 [~, name, ext] = fileparts(vid_path);
 frame_tmpdir = fullfile(opts.dest_dir, [name ext]);
 if ~opts.force
@@ -34,6 +27,13 @@ if ~opts.force
     files = strcat([frame_tmpdir filesep], {files.name});
     return;
   end
+end
+
+if ~exist(vid_path, 'file')
+  msgID = 'extractFrames:FILENOTFOUND';
+  msg = sprintf('Can not find %s', vid_path);
+  baseException = MException(msgID, msg);
+  throw(baseException)
 end
 
 if ~exist(frame_tmpdir, 'dir') %  make the folder if it doesn't exist

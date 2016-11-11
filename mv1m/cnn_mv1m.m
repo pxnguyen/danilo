@@ -104,7 +104,7 @@ if numel(meta.normalization.averageImage) == 3
   mu = double(meta.normalization.averageImage(:)) ;
 else
   mu = imresize(single(meta.normalization.averageImage), ...
-                meta.normalization.imageSize(1:2)) ;
+    meta.normalization.imageSize(1:2)) ;
 end
 
 useGpu = numel(opts.train.gpus) > 0 ;
@@ -144,7 +144,13 @@ video_paths = images;
 all_files = cell(length(video_paths),1);
 for video_index = 1:length(video_paths)
   files = extract_frames(video_paths{video_index}, 'dest_dir', opts.frame_dir);
-  all_files{video_index} = files(1:num_frames);
+  if strcmp(phase, 'train')
+    frame_selection = randperm(length(files));
+    frame_selection = frame_selection(1:num_frames);
+  elseif strcmp(phase, 'test')
+    frame_selection = floor(linspace(1, length(files), num_frames));
+  end
+  all_files{video_index} = files(frame_selection);
 end
 all_files = cat(2, all_files{:});
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
