@@ -25,8 +25,10 @@ opts.iter_per_epoch = 80000;
 opts.iter_per_save = 2000;
 opts.pretrained_path = '';
 opts.learning_schedule = 0;
+opts.train = struct();
 opts = vl_argparse(opts, varargin) ;
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
+opts
 
 % -------------------------------------------------------------------------
 %                                                              Prepare data
@@ -47,7 +49,7 @@ if exist(imageStatsPath)
   load(imageStatsPath, 'averageImage', 'rgbMean', 'rgbCovariance') ;
 else
   train = find(imdb.images.set == 1) ;
-  images = fullfile(imdb.imageDir, imdb.images.name(train(1:50:end))) ;
+  images = fullfile(imdb.imageDir, imdb.images.name(train(1:200:end))) ;
   [averageImage, rgbMean, rgbCovariance] = getImageStats(images, ...
     'imageSize', [256 256], ...
     'numThreads', opts.numFetchThreads, ...
