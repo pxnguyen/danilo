@@ -8,6 +8,8 @@ opts.colorDeviation = zeros(3) ;
 opts.cudnnWorkspaceLimit = 1024*1024*1204 ; % 1GB
 opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
 opts.learning_schedule = [1e-5 * ones(1, 80000), 1e-6*ones(1, 80000), 1e-7*ones(1, 80000)];
+opts.batch_size = 16;
+opts.num_frame = 5;
 opts = vl_argparse(opts, varargin) ;
 
 net = dagnn.DagNN.loadobj(load(opts.pretrained_path));
@@ -32,7 +34,7 @@ lr = opts.learning_schedule;
 net.meta.trainOpts.learningRate = lr ;
 net.meta.trainOpts.numEpochs = numel(lr) ;
 net.meta.trainOpts.momentum = 0.9 ;
-net.meta.trainOpts.batchSize = 16 ;
+net.meta.trainOpts.batchSize = opts.batch_size ;
 net.meta.trainOpts.weightDecay = 0.0001 ;
 %net.meta.trainOpts.numSubBatches = 4 ;
 
@@ -67,11 +69,10 @@ params = cellfun(@gather, params, 'UniformOutput', false) ;
 [net.params(p).value] = deal(params{:}) ;
 
 % adding the 3D pooling
-nFrames = 5;
 i_pool5 = find(~cellfun('isempty', strfind({net.layers.name}, 'pool5')));
 block = dagnn.Pooling3D() ;
 block.method = 'max' ;
-block.poolSize = [net.layers(i_pool5).block.poolSize nFrames];
+block.poolSize = [net.layers(i_pool5).block.poolSize opts.num_frame];
 block.pad = [net.layers(i_pool5).block.pad 0,0];
 block.stride = [net.layers(i_pool5).block.stride 2];
 

@@ -25,8 +25,8 @@ opts.resdb_path = fullfile(opts.expDir, 'resdb.mat') ;
 opts.model_path = fullfile(opts.expDir, 'net-epoch-1-iter-101000.mat');
 opts.layers_to_store = {'sigmoid'};
 opts = vl_argparse(opts, varargin) ;
-opts
 opts.batchSize = 16;
+opts
 
 if ~exist(opts.expDir, 'dir'), mkdir(opts.expDir) ; end
 if isempty(opts.train), opts.train = find(imdb.images.set==1) ; end

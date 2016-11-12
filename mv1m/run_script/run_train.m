@@ -15,6 +15,8 @@ switch hostname
     opts.dataDir = '/home/nguyenpx/vine-large-2';
     opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
 end
+opts.num_frame = 10;
+opts.batch_size = 9;
 opts.imdbPath = fullfile(opts.expDir, sprintf('%s_imdb.mat', exp_name));
 opts.train = struct();
 opts.train.gpus = gpus;
