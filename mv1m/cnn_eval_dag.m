@@ -124,7 +124,7 @@ start = tic ;
 max_iter = ceil(numel(subset)/params.batchSize);
 batch_index = findLastResultDB(params.resdb_path);
 
-save_iter = 1000;
+save_iter = 2000;
 bs = params.batchSize;
 local_batch_index = 1;
 max_batch = ceil(numel(subset)/params.batchSize);

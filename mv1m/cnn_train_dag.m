@@ -73,6 +73,8 @@ end
 
 epoch = start_epoch;
 current_iter = start_iter;
+val_with_relevant_labels = sum(imdb.images.label(:, opts.val), 1) > 0;
+opts.val = opts.val(val_with_relevant_labels);
 val_random_order = randperm(numel(opts.val));
 batchSize = opts.batchSize;
 iter_per_epoch = opts.iter_per_epoch;
@@ -174,7 +176,7 @@ while ~done
       end
     end
     drawnow ;
-    print(1, modelFigPath, '-dpdf') ;
+    %print(1, modelFigPath, '-dpdf') ;
   end
 end
 
