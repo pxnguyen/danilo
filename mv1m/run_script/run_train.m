@@ -39,6 +39,10 @@ switch exp_name
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
     opts.learning_schedule = [5e-5 * ones(1, 20000), 5e-6*ones(1, 40000), 4e-7*ones(1, 40000)];
+  case 'danilo_nospam'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 80000), 5e-6*ones(1, 100000), 4e-7*ones(1, 100000)];
 end
 rng('shuffle');
 cnn_mv1m(opts);
