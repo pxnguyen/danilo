@@ -176,7 +176,13 @@ while ~done
       end
     end
     drawnow ;
-    %print(1, modelFigPath, '-dpdf') ;
+
+    %TODO(phucng): remove this by fixing the print functionality on pi
+    [~, hostname] = system('hostname');
+    hostname = strtrim(hostname);
+    if strcmp(hostname, 'pi')
+      print(1, modelFigPath, '-dpdf') ;
+    end
   end
 end
 
@@ -267,7 +273,7 @@ for t=1:params.batchSize:numel(subset)
       net.accumulateParamDers = (s ~= 1) ;
       net.eval(inputs, params.derOutputs, 'holdOn', s < params.numSubBatches) ;
     else
-      net.mode = 'normal' ;
+      net.mode = 'eval' ;
       net.eval(inputs) ;
     end
   end
@@ -339,35 +345,39 @@ for p=1:numel(net.params)
 
     case 'average' % mainly for batch normalization
       thisLR = net.params(p).learningRate ;
-      net.params(p).value = vl_taccum(...
-          1 - thisLR, net.params(p).value, ...
-          (thisLR/batchSize/net.params(p).fanout),  parDer) ;
+      if thisLR>0
+        net.params(p).value = vl_taccum(...
+            1 - thisLR, net.params(p).value, ...
+            (thisLR/batchSize/net.params(p).fanout),  parDer) ;
+      end
 
     case 'gradient'
       thisDecay = params.weightDecay * net.params(p).weightDecay ;
       thisLR = params.learningRate * net.params(p).learningRate ;
+      
+      if thisLR>0 || thisDecay>0
+        % Normalize gradient and incorporate weight decay.
+        parDer = vl_taccum(1/batchSize, parDer, ...
+                           thisDecay, net.params(p).value) ;
 
-      % Normalize gradient and incorporate weight decay.
-      parDer = vl_taccum(1/batchSize, parDer, ...
-                         thisDecay, net.params(p).value) ;
-
-      % Update momentum.
-      state.momentum{p} = vl_taccum(...
-        params.momentum, state.momentum{p}, ...
-        -1, parDer) ;
-
-      % Nesterov update (aka one step ahead).
-      if params.nesterovUpdate
-        delta = vl_taccum(...
+        % Update momentum.
+        state.momentum{p} = vl_taccum(...
           params.momentum, state.momentum{p}, ...
           -1, parDer) ;
-      else
-        delta = state.momentum{p} ;
-      end
 
-      % Update parameters.
-      net.params(p).value = vl_taccum(...
-        1,  net.params(p).value, thisLR, delta) ;
+        % Nesterov update (aka one step ahead).
+        if params.nesterovUpdate
+          delta = vl_taccum(...
+            params.momentum, state.momentum{p}, ...
+            -1, parDer) ;
+        else
+          delta = state.momentum{p} ;
+        end
+
+        % Update parameters.
+        net.params(p).value = vl_taccum(...
+          1,  net.params(p).value, thisLR, delta) ;
+      end
 
     otherwise
       error('Unknown training method ''%s'' for parameter ''%s''.', ...

@@ -27,6 +27,7 @@ opts.pretrained_path = '';
 opts.learning_schedule = 0;
 opts.num_frame = 10;
 opts.batch_size = 9;
+opts.only_fc = false;
 opts.train = struct();
 opts = vl_argparse(opts, varargin) ;
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
@@ -51,7 +52,7 @@ if exist(imageStatsPath)
   load(imageStatsPath, 'averageImage', 'rgbMean', 'rgbCovariance') ;
 else
   train = find(imdb.images.set == 1) ;
-  images = fullfile(imdb.imageDir, imdb.images.name(train(1:200:end))) ;
+  images = fullfile(imdb.imageDir, imdb.images.name(train(1:100:end))) ;
   [averageImage, rgbMean, rgbCovariance] = getImageStats(images, ...
     'imageSize', [256 256], ...
     'numThreads', opts.numFetchThreads, ...
@@ -76,6 +77,7 @@ if isempty(opts.network)
         'learning_schedule', opts.learning_schedule, ...
         'batch_size', opts.batch_size, ...
         'num_frame', opts.num_frame, ...
+        'only_fc', opts.only_fc, ...
         'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
   end

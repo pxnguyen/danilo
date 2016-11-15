@@ -7,7 +7,7 @@ classdef Pooling3D < dagnn.Filter
   methods
     function outputs = forward(obj, inputs, params)
       
-      sz = size(inputs{1}); if numel(sz) < 4, sz(4) = 1; end 
+      sz = size(inputs{1}); if numel(sz) < 4, sz(4) = 1; end
       nFrames = sz(4) / obj.net.meta.curBatchSize ;
 
       inputs{1} = reshape(inputs{1}, sz(1), sz(2), sz(3),  nFrames, sz(4) / nFrames ) ;

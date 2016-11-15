@@ -21,6 +21,8 @@ opts.imdbPath = fullfile(opts.expDir, 'imdb.mat');
 opts.resdb_path = fullfile(opts.expDir, 'resdb.mat');
 opts.model_path = fullfile(opts.expDir, 'net-epoch-1-iter-101000.mat');
 opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
+opts.num_frame = 10;
+opts.batch_size = 9;
 opts.train = struct() ;
 opts = vl_argparse(opts, varargin) ;
 opts
@@ -51,7 +53,9 @@ if isempty(opts.network)
     case 'resnet-50'
       net = cnn_mv1m_init_resnet('averageImage', rgbMean, ...
                                  'colorDeviation', rgbDeviation, ...
-				 'pretrained_path', opts.pretrained_path, ...
+                                 'pretrained_path', opts.pretrained_path, ...
+                                 'batch_size', opts.batch_size, ...
+                                 'num_frame', opts.num_frame, ...
                                  'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
   end
@@ -96,6 +100,7 @@ bopts.test = struct(...
   'subtractAverage', mu) ;
 
 bopts.frame_dir = opts.frame_dir;
+bopts.num_frame = opts.num_frame;
 
 % Copy the parameters for data augmentation
 bopts.train = bopts.test ;
@@ -118,17 +123,15 @@ if ~isempty(batch) && imdb.images.set(batch(1)) == 1
 else
   phase = 'test' ;
 end
-num_frames = 5;
 video_paths = images;
 all_files = cell(length(video_paths),1);
 for video_index = 1:length(video_paths)
-  files = extract_frames(video_paths{video_index},...
-    'dest_dir', opts.frame_dir);
+  files = extract_frames(video_paths{video_index}, 'dest_dir', opts.frame_dir);
   if strcmp(phase, 'train')
     frame_selection = randperm(length(files));
-    frame_selection = frame_selection(1:num_frames);
+    frame_selection = frame_selection(1:opts.num_frame);
   elseif strcmp(phase, 'test')
-    frame_selection = floor(linspace(1, length(files), num_frames));
+    frame_selection = floor(linspace(1, length(files), opts.num_frame));
   end
   all_files{video_index} = files(frame_selection);
 end

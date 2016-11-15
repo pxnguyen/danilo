@@ -10,7 +10,7 @@ classdef DropOut < dagnn.ElementWise
 
   methods
     function outputs = forward(obj, inputs, params)
-      if strcmp(obj.net.mode, 'test')
+      if strcmp(obj.net.mode, 'eval')
         outputs = inputs ;
         return ;
       end
@@ -22,7 +22,7 @@ classdef DropOut < dagnn.ElementWise
     end
 
     function [derInputs, derParams] = backward(obj, inputs, params, derOutputs)
-      if strcmp(obj.net.mode, 'test')
+      if strcmp(obj.net.mode, 'eval')
         derInputs = derOutputs ;
         derParams = {} ;
         return ;

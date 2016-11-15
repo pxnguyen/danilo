@@ -126,6 +126,8 @@ classdef DagNN < matlab.mixin.Copyable
           obj.mode = 'normal' ;
         case {'test'}
           obj.mode = 'test' ;
+        case {'eval'}
+          obj.mode = 'eval';
       end
     end
 

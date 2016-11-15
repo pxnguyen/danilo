@@ -1,5 +1,9 @@
 function net = cnn_mv1m_init_resnet(varargin)
 %CNN_IMAGENET_INIT_RESNET  Initialize the ResNet-50 model for ImageNet classification
+% Args:
+%   batch_size: the batch size to run at
+%   num_frame: the sampled number of frames in a video
+%   only_fc: if True, only train the last conv layer.
 
 opts.classNames = {} ;
 opts.classDescriptions = {} ;
@@ -10,6 +14,8 @@ opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50
 opts.learning_schedule = [1e-5 * ones(1, 80000), 1e-6*ones(1, 80000), 1e-7*ones(1, 80000)];
 opts.batch_size = 16;
 opts.num_frame = 5;
+opts.only_fc = true;
+opts.dropout_ratio = 0.0;
 opts = vl_argparse(opts, varargin) ;
 
 net = dagnn.DagNN.loadobj(load(opts.pretrained_path));
@@ -18,8 +24,9 @@ net = dagnn.DagNN.loadobj(load(opts.pretrained_path));
 %                                                           Meta parameters
 % -------------------------------------------------------------------------
 
-net.meta.augmentation.jitterLocation = false ;
-net.meta.augmentation.jitterFlip = false ;
+net.meta.augmentation.jitterLocation = true ;
+net.meta.augmentation.jitterFlip = true ;
+net.meta.augmentation.jitterScale = true ;
 %net.meta.augmentation.rgbVariance = zeros(0, 3);
 
 net.meta.normalization.imageSize = [224 224 3] ;
@@ -55,18 +62,51 @@ out = numel(net.meta.classes.name);
 %net.params(param_index).value = values;
 %net.layers(1).block.size[3] = opts.num_flow * 2; %TODO(phucng): change 20 to num_flow
 
-% remove 'fc'
-lName = net.layers(end).name;
+% remove 'fc1000'
+last_layer_name = net.layers(end).name;
 net.removeLayer(net.layers(end).name);
 
-pName = net.layers(end).name;
-block = dagnn.Conv('size', [h, w, in, out], 'hasBias', true, ...
-                   'stride', 1, 'pad', 0);
-net.addLayer(lName, block, pName, lName, {[lName '_f'], [lName '_b']});
+prev_name = net.layers(end).name;
+if opts.only_fc
+  % add the stop gradient layer
+  stop_gradient_block = dagnn.StopGradient();
+  net.addLayer('stop_gradient', stop_gradient_block,...
+   prev_name, 'stop_gradient');
+  prev_name = 'stop_gradient';
+end
+
+for iparams = 1:length(net.params)
+  net.params(iparams).learningRate = 0;
+  net.params(iparams).weightDecay = 0;
+end
+
+% re-add the fc layer
+fc_block = dagnn.Conv('size', [h, w, in, out], 'hasBias', true, ...
+  'stride', 1, 'pad', 0);
+net.addLayer(last_layer_name, fc_block, ...
+  prev_name, last_layer_name,...
+  {[last_layer_name '_f'], [last_layer_name '_b']});
+
 p = net.getParamIndex(net.layers(end).params) ;
 params = net.layers(end).block.initParams() ;
 params = cellfun(@gather, params, 'UniformOutput', false) ;
 [net.params(p).value] = deal(params{:}) ;
+
+% add the dropout layer
+if opts.dropout_ratio > 0
+  index_res5c_relu = find(arrayfun(@(x) strcmp(x.name,'res5c_relu'), net.layers)) ;
+  dropout_block = dagnn.DropOut() ;
+  dropout_block.rate = opts.dropout_ratio ;
+  dropout_layer_name = ['drop_' net.layers(index_res5c_relu).name];
+
+  net.addLayerAt(index_res5c_relu, dropout_layer_name,...
+    dropout_block, ...
+    net.layers(index_res5c_relu).outputs, ...
+    dropout_layer_name) ;
+
+  i_pool5 = find(~cellfun('isempty', strfind({net.layers.name}, 'pool5')));
+  net.layers(i_pool5).inputs{1} = dropout_layer_name;
+end
 
 % adding the 3D pooling
 i_pool5 = find(~cellfun('isempty', strfind({net.layers.name}, 'pool5')));
@@ -76,7 +116,6 @@ block.poolSize = [net.layers(i_pool5).block.poolSize opts.num_frame];
 block.pad = [net.layers(i_pool5).block.pad 0,0];
 block.stride = [net.layers(i_pool5).block.stride 2];
 
-% TODO(phucng): need to fix this
 net.addLayerAt(i_pool5, 'pool3D5', block, ...
                [net.layers(i_pool5).inputs], ...
                  [net.layers(i_pool5).outputs]) ;
@@ -90,6 +129,7 @@ net.addLayer('sigmoid', dagnn.Sigmoid(), lName, 'sigmoid');
 net.addLayer('error',...
   dagnn.Loss('loss', 'hit@k', 'opts', {'topK', 1}),...
   {'sigmoid', 'label'}, 'hit_at_1') ;
+
 
 % net.addLayer('error5',...
 %   dagnn.Loss('loss', 'hit@k', 'opts', {'topK', 5}),...
