@@ -1,4 +1,4 @@
-function query_pool5(resdb, varargin)
+function query_pool5(resdb, related_tags, varargin)
 run('~/Research/vlfeat-0.9.20/toolbox/vl_setup.m');
 opts = struct();
 opts.start_exp = 'ari_nospam_small';
@@ -24,39 +24,39 @@ database_labels = database_imdb.images.label(:, resdb.video_ids);
 
 kmeans = load(sprintf('kmeanres_%s.mat', opts.start_exp));
 database_pool5 = resdb.pool5.outputs;
-prob = resdb.sigmoid.outputs; % the probability belonging to a tag
-database_names = resdb.names;
+prob = resdb.fc1000.outputs; % the probability belonging to a tag
+database_names = database_imdb.images.name(resdb.video_ids);
 database_tags = database_imdb.classes.name;
 added_names = cell(numel(start_imdb.classes.name), 1);
 added_labels = cell(numel(start_imdb.classes.name), 1);
+
 for tag_index = 1:numel(start_imdb.classes.name)
   tag_name = start_imdb.classes.name{tag_index};
+  resdb_tag_index = strcmp(tag_name, database_tags); % indexing into the db
 
-  % candidates to be add
-  candidates = true(numel(database_names), 1);
+  % candidates - keeping track of the videos that are considered
+  candidates = false(numel(resdb.video_ids), 1);
+
+  % just use the related videos
+  [~, ~, overlap_with_related] = intersect(related_tags{resdb_tag_index}, resdb.video_ids);
+  candidates(overlap_with_related) = true;
+  keyboard
 
   % filter out videos already in start
   start_labels = boolean(start_imdb.images.label(tag_index, :));
   start_names = start_imdb.images.name(start_labels);
-  [~, ~, database_overlap_index] = intersect(start_names, database_names);
-  candidates(database_overlap_index) = 0; % remove overlap
+  [~, ~, name_overlap_index] = intersect(start_names, resdb.name);
+  candidates(name_overlap_index) = false; % remove overlap
 
   % remove videos that have the same label
-  resdb_tag_index = strcmp(tag_name, database_tags);
-  same_label = boolean(database_labels(resdb_tag_index, :));
-  candidates(same_label) = 0; % remove same label
-
-  % abc
-  %centroids = kmeans.centroids{tag_index};
-  %num_centroids = size(centroids, 2);
-  %counts = histcounts(kmeans.assigments{tag_index}, 1:num_centroids+1);
-  %weights = 1./counts; weights = weights';
-  %distance = compute_weighted_distance(centroids, database_pool5, weights);
+  %resdb_tag_index = strcmp(tag_name, database_tags);
+  %same_label = boolean(database_labels(resdb_tag_index, :));
+  %candidates(same_label) = false; % remove same label
 
   filtered_distance = prob(tag_index, candidates);
   filtered_names = database_names(candidates);
   [sorted_dist, sorted_indeces] = sort(filtered_distance, 'descend');
-  selected = sorted_indeces(1:max(diff_counts(tag_index), 10));
+  selected = sorted_indeces(1:min(diff_counts(tag_index), 10));
   fprintf('%s\n', tag_name);
   
 
