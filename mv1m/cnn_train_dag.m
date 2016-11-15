@@ -180,7 +180,7 @@ while ~done
     %TODO(phucng): remove this by fixing the print functionality on pi
     [~, hostname] = system('hostname');
     hostname = strtrim(hostname);
-    if strcmp(hostname, 'pi')
+    if ~strcmp(hostname, 'pi')
       print(1, modelFigPath, '-dpdf') ;
     end
   end
