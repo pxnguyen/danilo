@@ -73,11 +73,11 @@ if opts.only_fc
   net.addLayer('stop_gradient', stop_gradient_block,...
    prev_name, 'stop_gradient');
   prev_name = 'stop_gradient';
-end
 
-for iparams = 1:length(net.params)
-  net.params(iparams).learningRate = 0;
-  net.params(iparams).weightDecay = 0;
+  for iparams = 1:length(net.params)
+    net.params(iparams).learningRate = 0;
+    net.params(iparams).weightDecay = 0;
+  end
 end
 
 % re-add the fc layer

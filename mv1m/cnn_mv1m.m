@@ -28,6 +28,7 @@ opts.learning_schedule = 0;
 opts.num_frame = 10;
 opts.batch_size = 9;
 opts.only_fc = false;
+opts.dropout_ratio = 0;
 opts.train = struct();
 opts = vl_argparse(opts, varargin) ;
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
@@ -78,6 +79,7 @@ if isempty(opts.network)
         'batch_size', opts.batch_size, ...
         'num_frame', opts.num_frame, ...
         'only_fc', opts.only_fc, ...
+        'dropout_ratio', opts.dropout_ratio,...
         'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
   end
