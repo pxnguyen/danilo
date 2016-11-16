@@ -103,7 +103,9 @@ while ~done
   params.learningRate = opts.learningRate(min(current_iter+1, numel(opts.learningRate))) ;
 
   train_random_order = randperm(numel(opts.train));
-  params.train = opts.train(train_random_order(1:min(iter_per_save*batchSize, numel(train_random_order)))) ; % shuffle
+  train_random_order = train_random_order(1:min(iter_per_save*batchSize,...
+    numel(train_random_order)));
+  params.train = opts.train(train_random_order) ; % shuffle
   params.val = opts.val(val_random_order(1:min(opts.num_eval_per_epoch, numel(val_random_order))));
   params.imdb = imdb ;
   params.getBatch = getBatch ;
@@ -265,9 +267,9 @@ for t=1:params.batchSize:numel(subset)
       nextBatch = subset(batchStart : params.numSubBatches * numlabs : batchEnd) ;
       params.getBatch(params.imdb, nextBatch) ;
     end
-    
+
     net.meta.curBatchSize = numel(batch);
-    
+
     if strcmp(mode, 'train')
       net.mode = 'normal' ;
       net.accumulateParamDers = (s ~= 1) ;

@@ -60,7 +60,7 @@ for tag_index = 1:numel(start_imdb.classes.name)
   fprintf('%s\n', tag_name);
   
 
-  added_names{tag_index} = filtered_names(selected);
+  added_names{tag_index} = filtered_names(selected) ;
   added_labels{tag_index} = database_labels(:, selected);
 end
 

@@ -29,6 +29,11 @@ switch exp_name
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
     opts.learning_schedule = [5e-5 * ones(1, 80000), 5e-6*ones(1, 80000), 5e-7*ones(1, 80000)];
+  case 'martin'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 80000), 5e-6*ones(1, 80000), 5e-7*ones(1, 80000)];
+    opts.only_fc = true
   case 'ari_half'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
