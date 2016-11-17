@@ -57,14 +57,15 @@ end
 processEpoch(net, state, params, 'val') ;
 
 fprintf('Combining all the resdb\n');
-[~, name, ~] = fileparts(params.resdb_path);
-list = dir(fullfile(opts.expDir, sprintf('%s-part-*.mat', name)));
+[path, name, ~] = fileparts(params.resdb_path);
+list = dir(fullfile(path, sprintf('%s-part-*.mat', name)));
 resdb = struct();
 resdb.names = cell(length(list), 1);
 resdb.predictions = cell(length(list), 1);
+keyboard
 for list_index = 1:length(list)
   fprintf('%d/%d\n', list_index, length(list));
-  part_resdb = load(fullfile(opts.expDir, list(list_index).name));
+  part_resdb = load(fullfile(path, list(list_index).name));
   resdb.names{list_index} = part_resdb.name;
   resdb.video_ids{list_index} = part_resdb.video_ids;
   resdb.gts{list_index} = part_resdb.gts;
