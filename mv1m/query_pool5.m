@@ -11,6 +11,7 @@ database_dir = fullfile(root_exp_dir, opts.database);
 fprintf('Loading the imdbs...\n');
 start_imdb = load(fullfile(start_dir, sprintf('%s_imdb.mat', opts.start_exp)));
 database_imdb = load(fullfile(database_dir, sprintf('%s_imdb.mat', opts.database)));
+db2start_map = make_map(start_imdb, database_imdb);
 fprintf('Done\n')
 
 % compute the difference in training examples
@@ -35,44 +36,59 @@ train_counts = sum(start_imdb.images.label(:, start_train), 2);
 for tag_index = 1:numel(start_imdb.classes.name)
   tag_name = start_imdb.classes.name{tag_index};
   fprintf('%d. %s\n', tag_index, tag_name);
+  sp = sprintf('selected_%s.mat', tag_name(2:end));
+  
   if train_counts(tag_index) == 0
     continue
   end
-  resdb_tag_index = strcmp(tag_name, database_tags); % indexing into the db
-
-  % candidates - keeping track of the videos that are considered
-  candidates = true(numel(resdb.video_ids), 1);
-
-  % just use the related videos
-  %[~, ~, overlap_with_related] = intersect(related_tags{resdb_tag_index}, resdb.video_ids);
-  %candidates(overlap_with_related) = true;
-  %keyboard
-
-  % filter out videos already in start
-  start_labels = boolean(start_imdb.images.label(tag_index, :));
-  start_names = start_imdb.images.name(start_labels);
-  [~, ~, name_overlap_index] = intersect(start_names, resdb.names);
-  candidates(name_overlap_index) = false; % remove overlap
-
-  % remove videos that have the same label
-  resdb_tag_index = strcmp(tag_name, database_tags);
-  same_label = boolean(database_labels(resdb_tag_index, :));
-  candidates(same_label) = false; % remove same label
-
-  filtered_distance = prob(tag_index, candidates);
-  filtered_names = database_names(candidates);
-  [sorted_dist, sorted_indeces] = sort(filtered_distance, 'descend');
-  selected = sorted_indeces(1:10);
   
-  selected_struct = struct();
-  selected_struct.selected_names = filtered_names(selected);
-  selected_struct.selected_label = resdb.gts(selected);
-  
-  sp = sprintf('selected_%s.mat', tag_name);
-  save(sp, '-struct', 'selected_struct');
+  if ~exist(sp, 'file')
+    resdb_tag_index = strcmp(tag_name, database_tags); % indexing into the db
 
-  added_names{tag_index} = filtered_names(selected) ;
-  added_labels{tag_index} = resdb.gts(:, selected);
+    % candidates - keeping track of the videos that are considered
+    candidates = true(numel(resdb.video_ids), 1);
+
+    % just use the related videos
+    %[~, ~, overlap_with_related] = intersect(related_tags{resdb_tag_index}, resdb.video_ids);
+    %candidates(overlap_with_related) = true;
+    %keyboard
+
+    % filter out videos already in start
+    start_labels = boolean(start_imdb.images.label(tag_index, :));
+    start_names = start_imdb.images.name(start_labels);
+    [~, ~, name_overlap_index] = intersect(start_names, resdb.names);
+    candidates(name_overlap_index) = false; % remove overlap
+
+    % remove videos that have the same label
+    resdb_tag_index = strcmp(tag_name, database_tags);
+    same_label = boolean(database_labels(resdb_tag_index, :));
+    candidates(same_label) = false; % remove same label
+
+    filtered_distance = prob(tag_index, candidates);
+    filtered_names = database_names(candidates);
+    [~, sorted_indeces] = sort(filtered_distance, 'descend');
+    selected = sorted_indeces(1:10);
+
+    selected_struct = struct();
+    selected_struct.selected_names = filtered_names(selected);
+
+    db_selected_label = logical(database_labels(:, selected));
+    ari_selected_label = zeros(807, 10);
+    for selected_index = 1:10
+      ari_indeces = db2start_map(db_selected_label(:, selected_index));
+      ari_indeces(ari_indeces==0) = [];
+      ari_selected_label(ari_indeces, selected_index) = 1;
+      ari_selected_label(tag_index, selected_index) = 1;
+    end
+    selected_struct.selected_label = ari_selected_label;
+  
+    save(sp, '-struct', 'selected_struct');
+  else
+    selected_struct = load(sp);
+  end
+
+  added_names{tag_index} = selected_struct.selected_names;
+  added_labels{tag_index} = selected_struct.selected_label;
 end
 
 mod_imdb = start_imdb;
@@ -120,3 +136,13 @@ else
   iter = 0;
 end
 
+% -------------------------------------------------------------------------
+function map_danilo_ari = make_map(ari_imdb, danilo_imdb)
+% -------------------------------------------------------------------------
+map_danilo_ari = zeros(numel(danilo_imdb.classes.name), 1);
+for ari_tag_index = 1:length(ari_imdb.classes.name)
+  ari_tag = ari_imdb.classes.name{ari_tag_index};
+  danilo_tag_set = danilo_imdb.classes.name;
+  danilo_tag_index = strcmp(ari_tag, danilo_tag_set);
+  map_danilo_ari(danilo_tag_index) = ari_tag_index;
+end

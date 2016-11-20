@@ -71,6 +71,9 @@ else
   state = [] ;
 end
 
+sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name}));
+net.vars(sel).precious = 1;
+
 epoch = start_epoch;
 current_iter = start_iter;
 val_with_relevant_labels = sum(imdb.images.label(:, opts.val), 1) > 0;
@@ -157,25 +160,41 @@ while ~done
     for f = {'train', 'val'}
       f = char(f) ;
       for p = plots
-        values = zeros(0, length(stats.iter_recorded)) ;
-        p = char(p) ;
-        leg = {} ;
-        if isfield(stats.(f), p)
-          tmp = [stats.(f).(p)] ;
-          values(end+1,:) = tmp(1,:)' ;
-          leg{end+1} = f ;
-        end
         if strcmp(f, 'train')
           subplot(2, numel(plots)+1, find(strcmp(p,plots))) ;
-          plot(stats.iter_recorded, values','-') ;
+          fmt = '-o';
         else
           subplot(2, numel(plots)+1, find(strcmp(p,plots))+num_plots) ;
-          plot(stats.iter_recorded, values','r-') ;
+          fmt = 'r-o';
+        end
+        if ~strcmp(p, 'APs')
+          values = zeros(0, length(stats.iter_recorded)) ;
+          p = char(p) ;
+          leg = {} ;
+          if isfield(stats.(f), p)
+            tmp = [stats.(f).(p)] ;
+            values(end+1,:) = tmp(1,:)' ;
+            leg{end+1} = f ;
+          end
+          plot(stats.iter_recorded, values', fmt) ;
+        else
+          APs = {stats.(f).APs};
+          min_val = cellfun(@(x) min(NaNproof(x)), APs);
+          max_val = cellfun(@(x) max(NaNproof(x)), APs);
+          mean_val = cellfun(@(x) mean(NaNproof(x)), APs);
+          std_val = cellfun(@(x) mean(NaNproof(x)), APs);
+          errorbar(stats.iter_recorded, mean_val, std_val, fmt)
         end
         xlabel('iterations') ;
         title(p) ;
         grid on ;
       end
+      % plotting 
+      subplot(2, numel(plots)+1, num_lots);
+      plot(stats.iter_recorded, stats.learning_rate);
+      xlabel('iterations') ;
+      title('Learning rate') ;
+      grid on ;
     end
     drawnow ;
 
@@ -190,6 +209,11 @@ end
 
 % With multiple GPUs, return one copy
 if isa(net, 'Composite'), net = net{1} ; end
+
+% -------------------------------------------------------------------------
+function APs = NaNproof(APs)
+APs = APs(~isnan(APs));
+% -------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------
 function [net, state] = processEpoch(net, state, params, mode)
@@ -242,6 +266,9 @@ stats.num = 0 ; % return something even if subset = []
 stats.time = 0 ;
 
 start = tic ;
+
+resdb = struct();
+local_batch_index = 1;
 for t=1:params.batchSize:numel(subset)
   fprintf('%s: epoch %02d: %3d/%3d:', mode, epoch, ...
           fix((t-1)/params.batchSize)+1, ceil(numel(subset)/params.batchSize)) ;
@@ -278,6 +305,12 @@ for t=1:params.batchSize:numel(subset)
       net.mode = 'eval' ;
       net.eval(inputs) ;
     end
+
+    resdb.gts{local_batch_index} = permute(inputs{4}, [3 4 1 2]);
+    sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name})) ;
+    resdb.fc1000.outputs{local_batch_index} =...
+      gather(permute(net.vars(sel).value, [3 4 1 2]));
+    local_batch_index = local_batch_index  + 1;
   end
 
   % Accumulate gradient.
@@ -305,9 +338,14 @@ for t=1:params.batchSize:numel(subset)
     f = char(f) ;
     fprintf(' %s: %.3f', f, stats.(f)) ;
   end
-  fprintf('\n') ;
-
+  fprintf('\n');
 end
+
+resdb.gts = cat(2, resdb.gts{:});
+resdb.gts(resdb.gts==-1) = 0;
+resdb.fc1000.outputs = cat(2, resdb.fc1000.outputs{:});
+fprintf('Computing average precision\n');
+stats.APs = compute_average_precision(resdb.fc1000.outputs, resdb.gts);
 
 % Save back to state.
 state.stats.(mode) = stats ;
@@ -328,6 +366,10 @@ end
 
 net.reset() ;
 net.move('cpu') ;
+% -------------------------------------------------------------------------
+function compute_mAP(resdb)
+resdb
+% -------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------
 function state = accumulateGradients(net, state, params, batchSize, parserv)

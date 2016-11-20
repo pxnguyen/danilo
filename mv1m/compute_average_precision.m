@@ -16,7 +16,6 @@ opts = vl_argparse(opts, varargin);
 
 AP_tag = zeros(C, 1);
 for class_index = 1:C
-  fprintf('%d/%d\n', class_index, C);
   preds_class = single(preds(class_index, :));
   gts_class = single(gts(class_index, :));
   AP_tag(class_index) = compute_ap_class(preds_class, gts_class);
