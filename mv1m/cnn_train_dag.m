@@ -161,10 +161,10 @@ while ~done
       f = char(f) ;
       for p = plots
         if strcmp(f, 'train')
-          subplot(2, numel(plots)+1, find(strcmp(p,plots))) ;
+          subplot(numel(plots), 2, find(strcmp(p,plots))) ;
           fmt = '-o';
         else
-          subplot(2, numel(plots)+1, find(strcmp(p,plots))+num_plots) ;
+          subplot(numel(plots), 2, find(strcmp(p,plots))+num_plots) ;
           fmt = 'r-o';
         end
         if ~strcmp(p, 'APs')
@@ -190,11 +190,11 @@ while ~done
         grid on ;
       end
       % plotting 
-      subplot(2, numel(plots)+1, 2*(num_plots+1)-1);
-      semilogy(stats.iter_recorded, stats.learning_rate);
-      xlabel('iterations') ;
-      title('Learning rate') ;
-      grid on ;
+      %subplot(2, numel(plots)+1, 2*(num_plots+1)-1);
+      %semilogy(stats.iter_recorded, stats.learning_rate);
+      %xlabel('iterations') ;
+      %title('Learning rate') ;
+      %grid on ;
     end
     drawnow ;
 
