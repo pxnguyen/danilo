@@ -33,7 +33,7 @@ opts.extractStatsFn = @extractStats ;
 opts.plotStatistics = true;
 opts.iter_per_epoch = 80000;
 opts.iter_per_save = 1000;
-opts.num_eval_per_epoch = 15000;
+opts.num_eval_per_epoch = 8000;
 opts = vl_argparse(opts, varargin) ;
 opts
 
