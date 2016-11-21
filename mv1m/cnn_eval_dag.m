@@ -37,6 +37,8 @@ prepareGPUs(opts, true) ;
 
 [net, state, stats] = loadState(opts.model_path) ;
 
+val_with_relevant_labels = sum(imdb.images.label(:, opts.val), 1) > 0;
+opts.val = opts.val(val_with_relevant_labels);
 val_random_order = 1:numel(opts.val);
 batchSize = opts.batchSize;
 
@@ -79,6 +81,8 @@ end
 
 resdb.names = cat(2, resdb.names{:});
 resdb.video_ids = cat(2, resdb.video_ids{:});
+resdb.gts = cat(2, resdb.gts{:});
+resdb.gts(resdb.gts==-1) = 0;
 for layer_index = 1:numel(opts.layers_to_store)
   layer_name = opts.layers_to_store{layer_index};
   resdb.(layer_name).outputs =...

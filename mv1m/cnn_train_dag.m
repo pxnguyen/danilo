@@ -33,7 +33,7 @@ opts.extractStatsFn = @extractStats ;
 opts.plotStatistics = true;
 opts.iter_per_epoch = 80000;
 opts.iter_per_save = 1000;
-opts.num_eval_per_epoch = 8000;
+opts.num_eval_per_epoch = 15000;
 opts = vl_argparse(opts, varargin) ;
 opts
 
@@ -183,7 +183,7 @@ while ~done
           max_val = cellfun(@(x) max(NaNproof(x)), APs);
           mean_val = cellfun(@(x) mean(NaNproof(x)), APs);
           std_val = cellfun(@(x) mean(NaNproof(x)), APs);
-          errorbar(stats.iter_recorded, mean_val, std_val, fmt)
+          errorbar(stats.iter_recorded, mean_val, std_val, fmt);
         end
         xlabel('iterations') ;
         title(p) ;

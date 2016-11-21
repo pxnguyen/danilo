@@ -6,8 +6,8 @@ opts = struct();
 hostname = strtrim(hostname);
 switch hostname
   case 'pi'
-    opts.expDir = fullfile('mnt/large/pxnguyen/cnn_exp/', exp_name);
-    opts.frame_dir = '/tmp/vine-images/'
+    opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/', exp_name);
+    opts.frame_dir = '/mnt/hermes/nguyenpx/vine-images/';
     opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
   case 'omega'
     opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
@@ -15,24 +15,9 @@ switch hostname
     opts.dataDir = '/home/nguyenpx/vine-large-2';
     opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
 end
-opts.imdbPath = fullfile(opts.expDir,...
-  sprintf('%s_imdb.mat', exp_name));
+opts.imdbPath = fullfile(opts.expDir, sprintf('%s_imdb.mat', exp_name));
 opts.train = struct();
 opts.train.gpus = [1];
-
-[~, hostname] = system('hostname');
-hostname = strtrim(hostname);
-switch hostname
-  case 'pi'
-    opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/', exp_name);
-    opts.frame_dir = '/mnt/large/pxnguyen/vine-images-test/';
-    opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
-  case 'omega'
-    opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
-    opts.frame_dir = '/home/nguyenpx/vine-images/';
-    opts.dataDir = '/home/nguyenpx/vine-large-2';
-    opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
-end
 
 opts.imdbPath = fullfile(opts.expDir, sprintf('%s_imdb.mat', exp_name));
 
@@ -45,6 +30,7 @@ opts.model_path = fullfile(opts.expDir,...
 
 opts.train = struct();
 opts.train.gpus = [1];
+opts.layers_to_store = {'fc1000'};
 
 % extracting the features
 if ~exist(opts.resdb_path, 'file')

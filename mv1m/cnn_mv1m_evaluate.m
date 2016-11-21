@@ -20,9 +20,13 @@ opts.lite = false ;
 opts.imdbPath = fullfile(opts.expDir, 'imdb.mat');
 opts.resdb_path = fullfile(opts.expDir, 'resdb.mat');
 opts.model_path = fullfile(opts.expDir, 'net-epoch-1-iter-101000.mat');
-opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
+opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
+opts.num_frame = 10;
+opts.batch_size = 9;
+opts.layers_to_store = {'pool5', 'sigmoid', 'fc1000'};
 opts.train = struct() ;
 opts = vl_argparse(opts, varargin) ;
+opts
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
 
 % -------------------------------------------------------------------------
@@ -50,7 +54,9 @@ if isempty(opts.network)
     case 'resnet-50'
       net = cnn_mv1m_init_resnet('averageImage', rgbMean, ...
                                  'colorDeviation', rgbDeviation, ...
-				 'pretrained_path', opts.pretrained_path, ...
+                                 'pretrained_path', opts.pretrained_path, ...
+                                 'batch_size', opts.batch_size, ...
+                                 'num_frame', opts.num_frame, ...
                                  'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
   end
@@ -67,7 +73,10 @@ cnn_eval_dag(net, imdb, getBatchFn(opts, net.meta), ...
   'expDir', opts.expDir, ...
   'resdb_path', opts.resdb_path,...
   'model_path', opts.model_path,...
+  'layers_to_store', opts.layers_to_store,...
   'prefetch', true, ...
+  'train', NaN, ...
+  'val', find(imdb.images.set==2),...
   opts.train, ...
   net.meta.trainOpts);
 
@@ -92,6 +101,7 @@ bopts.test = struct(...
   'subtractAverage', mu) ;
 
 bopts.frame_dir = opts.frame_dir;
+bopts.num_frame = opts.num_frame;
 
 % Copy the parameters for data augmentation
 bopts.train = bopts.test ;
@@ -114,20 +124,24 @@ if ~isempty(batch) && imdb.images.set(batch(1)) == 1
 else
   phase = 'test' ;
 end
-num_frames = 5;
 video_paths = images;
 all_files = cell(length(video_paths),1);
 for video_index = 1:length(video_paths)
-  files = extract_frames(video_paths{video_index},...
-    'dest_dir', opts.frame_dir);
-  all_files{video_index} = files(1:num_frames);
+  files = extract_frames(video_paths{video_index}, 'dest_dir', opts.frame_dir);
+  if strcmp(phase, 'train')
+    frame_selection = randperm(length(files));
+    frame_selection = frame_selection(1:opts.num_frame);
+  elseif strcmp(phase, 'test')
+    frame_selection = floor(linspace(1, length(files), opts.num_frame));
+  end
+  all_files{video_index} = files(frame_selection);
 end
 all_files = cat(2, all_files{:});
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
 if nargout > 0
-  labels = full(imdb.images.label(:, batch)) ;
-  labels(labels==0) = -1;
   num_classes = numel(imdb.classes.name);
+  labels = full(imdb.images.label(1:807, batch)) ; % tem fix
+  labels(labels==0) = -1;
   % labels has to be W x H x D x N
   labels = permute(labels, [3, 4, 1, 2]);
   switch networkType

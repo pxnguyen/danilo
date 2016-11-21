@@ -6,7 +6,7 @@ function AP_tag = compute_average_precision(preds, gts, varargin)
 %   opts.aggregate_type: per-tag or per-example
 %   opts.
 [C, N] = size(preds);
-[Cg, Ng] = size(preds);
+[Cg, Ng] = size(gts);
 pos_num_class = [4000 1000 807 40 51 15 76 4 2];
 if (~any(ismember(pos_num_class, C))) || C ~= Cg || N~=Ng;
   throw(MException('MYFUN:BadIndex', 'wrong inputs'));

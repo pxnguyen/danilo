@@ -36,22 +36,17 @@ train_counts = sum(start_imdb.images.label(:, start_train), 2);
 for tag_index = 1:numel(start_imdb.classes.name)
   tag_name = start_imdb.classes.name{tag_index};
   fprintf('%d. %s\n', tag_index, tag_name);
-  sp = sprintf('selected_%s.mat', tag_name(2:end));
-  
+  sp = sprintf('selected_vis/selected_%s.mat', tag_name(2:end));
+
   if train_counts(tag_index) == 0
     continue
   end
-  
+
   if ~exist(sp, 'file')
     resdb_tag_index = strcmp(tag_name, database_tags); % indexing into the db
 
     % candidates - keeping track of the videos that are considered
     candidates = true(numel(resdb.video_ids), 1);
-
-    % just use the related videos
-    %[~, ~, overlap_with_related] = intersect(related_tags{resdb_tag_index}, resdb.video_ids);
-    %candidates(overlap_with_related) = true;
-    %keyboard
 
     % filter out videos already in start
     start_labels = boolean(start_imdb.images.label(tag_index, :));
@@ -91,12 +86,15 @@ for tag_index = 1:numel(start_imdb.classes.name)
   added_labels{tag_index} = selected_struct.selected_label;
 end
 
+added_names = cat(2, added_names{:});
+added_labels = cat(2, added_labels{:});
+
 mod_imdb = start_imdb;
 mod_imdb.images.id = horzcat(mod_imdb.images.id,...
   (1:numel(added_names)) + 1e7 - 1) ;
 mod_imdb.images.name = horzcat(mod_imdb.images.name, added_names) ;
 mod_imdb.images.set = horzcat(mod_imdb.images.set, 1*ones(1,numel(added_names))) ;
-mod_imdb.images.label = horzcat(mod_imdb.images.label, labels') ;
+mod_imdb.images.label = horzcat(mod_imdb.images.label, added_labels) ;
 
 mod_name = sprintf('ari_mod_vis', opts.start_exp);
 mod_dir = fullfile(root_exp_dir, mod_name);
