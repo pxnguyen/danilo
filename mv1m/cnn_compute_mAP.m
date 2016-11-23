@@ -15,6 +15,8 @@ fprintf('Computing APs...\n');
 train_indeces = find(imdb.images.set==1);
 info.train_vid_count = sum(imdb.images.label(:, train_indeces), 2);
 info.AP_tag = compute_average_precision(resdb.fc1000.outputs, resdb.gts);
+
+fprintf('saving the AP info to %s\n', info_path);
 save(info_path, '-struct', 'info');
 
 function print_to_google_vis(vid_count, AP_tag, names)

@@ -53,7 +53,7 @@ if exist(imageStatsPath)
   load(imageStatsPath, 'averageImage', 'rgbMean', 'rgbCovariance') ;
 else
   train = find(imdb.images.set == 1) ;
-  images = fullfile(imdb.imageDir, imdb.images.name(train(1:100:end))) ;
+  images = fullfile(imdb.imageDir, imdb.images.name(train(1:80:end))) ;
   [averageImage, rgbMean, rgbCovariance] = getImageStats(images, ...
     'imageSize', [256 256], ...
     'numThreads', opts.numFetchThreads, ...
@@ -165,7 +165,7 @@ end
 all_files = cat(2, all_files{:});
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
 if nargout > 0
-  labels = full(imdb.images.label(:, batch)) ;
+  labels = full(imdb.images.augmented_labels(:, batch)) ;
   labels(labels==0) = -1;
   num_classes = numel(imdb.classes.name);
   % labels has to be W x H x D x N

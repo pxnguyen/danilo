@@ -91,15 +91,19 @@ for tag_index = 1:numel(start_imdb.classes.name)
   added_labels{tag_index} = selected_struct.selected_label;
 end
 
+added_names = cat(2, added_names{:});
+added_labels = cat(2, added_labels{:});
+
 mod_imdb = start_imdb;
 mod_imdb.images.id = horzcat(mod_imdb.images.id,...
   (1:numel(added_names)) + 1e7 - 1) ;
 mod_imdb.images.name = horzcat(mod_imdb.images.name, added_names) ;
 mod_imdb.images.set = horzcat(mod_imdb.images.set, 1*ones(1,numel(added_names))) ;
-mod_imdb.images.label = horzcat(mod_imdb.images.label, labels') ;
+mod_imdb.images.label = horzcat(mod_imdb.images.label, added_labels) ;
 
 mod_name = sprintf('ari_mod_both', opts.start_exp);
 mod_dir = fullfile(root_exp_dir, mod_name);
+if ~exist(mod_dir, 'dir'); mkdir(mod_dir); end;
 mod_imdb_path = fullfile(mod_dir, sprintf('%s_imdb.mat', mod_name));
 save(mod_imdb_path, '-struct', 'mod_imdb');
 

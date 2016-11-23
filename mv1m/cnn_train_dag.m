@@ -83,7 +83,6 @@ batchSize = opts.batchSize;
 iter_per_epoch = opts.iter_per_epoch;
 iter_per_save = opts.iter_per_save;
 max_iter = ceil(numel(opts.train)/opts.batchSize);
-iter_per_save = min(iter_per_save, max_iter);
 prepareGPUs(opts, true) ;
 done = false;
 while ~done
@@ -105,10 +104,14 @@ while ~done
   params.epoch = epoch ;
   params.learningRate = opts.learningRate(min(current_iter+1, numel(opts.learningRate))) ;
 
-  train_random_order = randperm(numel(opts.train));
-  train_random_order = train_random_order(1:min(iter_per_save*batchSize,...
-    numel(train_random_order)));
-  params.train = opts.train(train_random_order) ; % shuffle
+  %TODO(phuc): need to do the class balancing here
+  fprintf('Shuffling and balancing the data...\n');
+  [train_order, imdb] = select_training_examples(iter_per_save*batchSize, imdb); 
+  %train_random_order = randperm(numel(opts.train));
+  %train_random_order = train_random_order(1:min(iter_per_save*batchSize,...
+    %numel(train_random_order)));
+  %params.train = opts.train(train_random_order) ; % shuffle
+  params.train = train_order ; % shuffle
   params.val = opts.val(val_random_order(1:min(opts.num_eval_per_epoch, numel(val_random_order))));
   params.imdb = imdb ;
   params.getBatch = getBatch ;
