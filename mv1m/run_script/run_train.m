@@ -71,7 +71,11 @@ switch exp_name
   case 'danilo_nospam'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
-    opts.learning_schedule = [5e-5 * ones(1, 80000), 5e-6*ones(1, 100000), 4e-7*ones(1, 100000)];
+    opts.learning_schedule = [5e-5 * ones(1, 180000), 5e-6*ones(1, 100000), 4e-7*ones(1, 100000)];
+  case 'danilo_retrain'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 200000), 5e-6*ones(1, 100000), 4e-7*ones(1, 100000)];
   case 'dani'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
