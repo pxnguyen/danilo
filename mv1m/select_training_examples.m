@@ -8,7 +8,7 @@ function [indeces, imdb]=select_training_examples(num_train, imdb)
 is_train = (imdb.images.set==1);
 labels = imdb.images.label;
 num_tag = numel(imdb.classes.name);
-multiple = 5; % this helps speed up the selection process
+multiple = 4; % this helps speed up the selection process
 tag_indeces = randi(num_tag, [1 num_train/multiple]);
 indeces = zeros(num_train, 1);
 augmented_labels = imdb.images.label;
@@ -21,10 +21,10 @@ for index = 1:numel(tag_indeces) % for each selected tag
     selected_vids = vids_with_tag(randi(numel(vids_with_tag), [1 multiple]));
   end
   indeces(multiple*(index-1)+1:multiple*index) = selected_vids;
-  
+
   % only allow the tag to be true.
-  augmented_labels(:, selected_vids) = false;
-  augmented_labels(tag, selected_vids) = true;
+  %augmented_labels(:, selected_vids) = false;
+  %augmented_labels(tag, selected_vids) = true;
 end
 
 % shuffle the indeces

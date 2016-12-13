@@ -2,7 +2,7 @@ function cnn_compute_mAP(varargin)
 opts = struct();
 opts.expDir = '/mnt/large/pxnguyen/cnn_exp/danilo';
 opts.resdb_path = fullfile(opts.expDir, 'resdb-iter-69000.mat');
-opts.imdbPath = '/mnt/large/pxnguyen/cnn_exp/danilo/imdb.mat';
+opts.imdbPath = '';
 opts = vl_argparse(opts, varargin)
 
 fprintf('Loading imdb\n');

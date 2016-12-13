@@ -9,6 +9,11 @@ switch hostname
     opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/', exp_name);
     opts.frame_dir = '/mnt/hermes/nguyenpx/vine-images/'
     opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
+  case 'epsilon'
+    opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
+    opts.frame_dir = '/home/nguyenpx/vine-images/';
+    opts.dataDir = '/home/nguyenpx/vine-large-2';
+    opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
   case 'omega'
     opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
     opts.frame_dir = '/scratch/nguyenpx/vine-images/';
@@ -25,6 +30,15 @@ switch exp_name
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
     opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
+  case 'aria'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 180000), 5e-6*ones(1, 180000), 5e-7*ones(1, 80000)];
+    opts.only_fc = true;
+  case 'aria-cfc'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 180000), 5e-6*ones(1, 180000), 5e-7*ones(1, 80000)];
   case 'ari_full_nospam'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
@@ -34,7 +48,7 @@ switch exp_name
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
     opts.learning_schedule = [5e-5 * ones(1, 180000), 5e-6*ones(1, 180000), 5e-7*ones(1, 80000)];
-    opts.only_fc = true
+    opts.only_fc = true;
   case 'ari_half'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;

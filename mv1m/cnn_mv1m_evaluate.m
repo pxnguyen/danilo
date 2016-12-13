@@ -21,7 +21,7 @@ opts.imdbPath = fullfile(opts.expDir, 'imdb.mat');
 opts.resdb_path = fullfile(opts.expDir, 'resdb.mat');
 opts.model_path = fullfile(opts.expDir, 'net-epoch-1-iter-101000.mat');
 opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
-opts.num_frame = 10;
+opts.num_frame = 5;
 opts.batch_size = 9;
 opts.layers_to_store = {'pool5', 'sigmoid', 'fc1000'};
 opts.train = struct() ;
@@ -140,7 +140,7 @@ all_files = cat(2, all_files{:});
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
 if nargout > 0
   num_classes = numel(imdb.classes.name);
-  labels = full(imdb.images.label(1:807, batch)) ; % tem fix
+  labels = full(imdb.images.label(:, batch)) ; % tem fix
   labels(labels==0) = -1;
   % labels has to be W x H x D x N
   labels = permute(labels, [3, 4, 1, 2]);

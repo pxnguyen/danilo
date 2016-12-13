@@ -185,7 +185,7 @@ while ~done
           min_val = cellfun(@(x) min(NaNproof(x)), APs);
           max_val = cellfun(@(x) max(NaNproof(x)), APs);
           mean_val = cellfun(@(x) mean(NaNproof(x)), APs);
-          std_val = cellfun(@(x) mean(NaNproof(x)), APs);
+          std_val = cellfun(@(x) std(NaNproof(x)), APs);
           errorbar(stats.iter_recorded, mean_val, std_val, fmt);
         end
         xlabel('iterations') ;

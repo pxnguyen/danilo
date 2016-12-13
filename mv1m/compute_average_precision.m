@@ -7,7 +7,7 @@ function AP_tag = compute_average_precision(preds, gts, varargin)
 %   opts.
 [C, N] = size(preds);
 [Cg, Ng] = size(gts);
-pos_num_class = [4000 1000 807 40 51 15 76 4 2];
+pos_num_class = [4000 1000 807 40 51 15 76 4 2 1];
 if (~any(ismember(pos_num_class, C))) || C ~= Cg || N~=Ng;
   throw(MException('MYFUN:BadIndex', 'wrong inputs'));
 end
@@ -23,7 +23,7 @@ end
 
 function ap = compute_ap_class(preds, gts)
 if isempty(preds)
-  ap = 0
+  ap = 0;
   return
 end
 [~, N] = size(preds);
