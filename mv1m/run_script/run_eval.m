@@ -37,12 +37,24 @@ if ~exist(opts.resdb_path, 'file')
   cnn_mv1m_evaluate(opts);
 end
 
-% compute the mAP
-map_opts = struct();
-map_opts.resdb_path = opts.resdb_path;
-map_opts.imdbPath = opts.imdbPath;
-map_opts.expDir = opts.expDir;
-cnn_compute_mAP(map_opts);
+fprintf('Loading imdb\n');
+tic; imdb = load(opts.imdbPath); toc;
+train_indeces = find(imdb.images.set==1);
+info.train_vid_count = sum(imdb.images.label(:, train_indeces), 2);
+
+fprintf('Loading resdb\n');
+tic; resdb = load(opts.resdb_path); toc;
+
+fprintf('Computing APs...\n');
+info.AP_tag = compute_average_precision(resdb.fc1000.outputs, resdb.gts);
+
+% compute the prec@K
+fprintf('Computing prec@K...\n');
+info.prec_at_k = compute_precision_at_k(resdb.fc1000.outputs, resdb.gts);
+
+info_path = fullfile(opts.expDir, 'info.mat');
+fprintf('saving the AP info to %s\n', info_path);
+save(info_path, '-struct', 'info');
 
 % -------------------------------------------------------------------------
 function [epoch, iter] = findLastCheckpoint(modelDir)
@@ -58,4 +70,3 @@ else
   epoch = 1;
   iter = 0;
 end
-

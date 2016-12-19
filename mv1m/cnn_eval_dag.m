@@ -64,7 +64,6 @@ list = dir(fullfile(path, sprintf('%s-part-*.mat', name)));
 resdb = struct();
 resdb.names = cell(length(list), 1);
 resdb.predictions = cell(length(list), 1);
-keyboard
 for list_index = 1:length(list)
   fprintf('%d/%d\n', list_index, length(list));
   part_resdb = load(fullfile(path, list(list_index).name));
