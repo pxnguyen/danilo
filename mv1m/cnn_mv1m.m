@@ -23,16 +23,18 @@ opts.train = struct() ;
 opts.frame_dir = '/tmp/vine-images';
 opts.iter_per_epoch = 80000;
 opts.iter_per_save = 2000;
+opts.num_eval_per_epoch = 8000;
 opts.pretrained_path = '';
 opts.learning_schedule = 0;
 opts.num_frame = 10;
 opts.batch_size = 9;
 opts.only_fc = false;
 opts.dropout_ratio = 0;
+opts.label_type = 'regular';
+opts.loss_type = 'logistic';
 opts.train = struct();
 opts = vl_argparse(opts, varargin) ;
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
-opts
 
 % -------------------------------------------------------------------------
 %                                                              Prepare data
@@ -80,6 +82,7 @@ if isempty(opts.network)
         'num_frame', opts.num_frame, ...
         'only_fc', opts.only_fc, ...
         'dropout_ratio', opts.dropout_ratio,...
+        'loss_type', opts.loss_type,...
         'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
   end
@@ -101,8 +104,11 @@ end
   'expDir', opts.expDir, ...
   'iter_per_epoch', opts.iter_per_epoch,...
   'iter_per_save', opts.iter_per_save,...
+  'num_eval_per_epoch', opts.num_eval_per_epoch, ...
   'prefetch', true, ...
   'nesterovUpdate', true, ...
+  'label_type', opts.label_type, ...
+  'loss_type', opts.loss_type,...
   net.meta.trainOpts, ...
   opts.train) ;
 
@@ -128,6 +134,8 @@ bopts.test = struct(...
 
 bopts.frame_dir = opts.frame_dir;
 bopts.num_frame = opts.num_frame;
+bopts.labelType = opts.label_type;
+bopts.loss_type = opts.loss_type;
 
 % Copy the parameters for data augmentation
 bopts.train = bopts.test ;
@@ -165,11 +173,22 @@ end
 all_files = cat(2, all_files{:});
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
 if nargout > 0
-  labels = full(imdb.images.augmented_labels(:, batch)) ;
-  labels(labels==0) = -1;
+  if strcmp(opts.labelType, 'vetted')
+    labels = double(full(imdb.images.vetted_labels(:, batch) > 0));
+  else
+    labels = full(imdb.images.label(:, batch));
+  end
+  
+  switch opts.loss_type
+    case 'logistic'
+      labels(labels==0) = -1;
+      labels = permute(labels, [3, 4, 1, 2]);
+%     case 'softmax'
+%       labels = permute(labels, [3, 4, 2, 1]);
+  end
+  %TODO: need to throw an exception here.
   num_classes = numel(imdb.classes.name);
   % labels has to be W x H x D x N
-  labels = permute(labels, [3, 4, 1, 2]);
   switch networkType
     case 'simplenn'
       varargout = {data, labels} ;

@@ -55,7 +55,7 @@ var numTrainValue = function(d) { return d.num_train;}, // data -> value
 
 // setup y
 var APValue = function(d) { return d.AP;}, // data -> value
-    yScale = d3.scale.log().range([height, 0]), // value -> display
+    yScale = d3.scale.linear().range([height, 0]), // value -> display
     yMap = function(d) { return yScale(APValue(d));}, // data -> display
     yAxis = d3.svg.axis().scale(yScale).orient("left");
 
@@ -75,7 +75,7 @@ var tooltip = d3.select("body").append("div")
     .attr("class", "tooltip");
 
 // load data
-d3.csv("danilo_nospam_ap.csv", function(error, data) {
+d3.csv("prec_at_16.original.adjusted.csv", function(error, data) {
 
   // change string (from CSV) into number format
   data.forEach(function(d) {
@@ -155,15 +155,6 @@ d3.csv("danilo_nospam_ap.csv", function(error, data) {
           });
 
       });
-/*
-  svg.append("line")
-    .attr('class', 'chance_line')
-    .style("stroke", "green")
-    .style("z-index", 100)
-    .attr("x1", xScale(0.000000000000001))
-    .attr("y1", yScale(0.000000000000001))
-    .attr("x2", xScale(7296))
-    .attr("y2", yScale(0.0397));*/
 
   var line = svg.append("line")
     .attr("class", "connection")

@@ -16,6 +16,7 @@ opts.batch_size = 16;
 opts.num_frame = 5;
 opts.only_fc = true;
 opts.dropout_ratio = 0.0;
+opts.loss_type = 'logistic';
 opts = vl_argparse(opts, varargin) ;
 
 net = dagnn.DagNN.loadobj(load(opts.pretrained_path));
@@ -122,13 +123,19 @@ net.addLayerAt(i_pool5, 'pool3D5', block, ...
 net.removeLayer('pool5') ;
 
 lName = net.layers(end).name;
-net.addLayer('loss', dagnn.Loss('loss', 'logistic'), {lName, 'label'}, 'objective');
+
+switch opts.loss_type
+  case 'logistic'
+    net.addLayer('loss', dagnn.Loss('loss', 'logistic'), {lName, 'label'}, 'objective');
+  case 'softmax'
+    net.addLayer('loss', dagnn.Loss('loss', 'softmaxlog'), {lName, 'label'}, 'objective') ;
+end
 
 % performance metrics
 net.addLayer('sigmoid', dagnn.Sigmoid(), lName, 'sigmoid');
-net.addLayer('error',...
-  dagnn.Loss('loss', 'hit@k', 'opts', {'topK', 1}),...
-  {'sigmoid', 'label'}, 'hit_at_1') ;
+% net.addLayer('error',...
+%   dagnn.Loss('loss', 'hit@k', 'opts', {'topK', 1}),...
+%   {'sigmoid', 'label'}, 'hit_at_1') ;
 
 
 % net.addLayer('error5',...

@@ -105,6 +105,23 @@ switch exp_name
     opts.iter_per_save = 2000;
     opts.learning_schedule = [5e-5 * ones(1, 100000), 5e-6*ones(1, 100000), 4e-7*ones(1, 100000)];
     opts.only_fc = true;
+  case 'aria_upperbound'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 100000), 5e-6*ones(1, 100000), 4e-7*ones(1, 100000)];
+    opts.only_fc = true;
+    opts.label_type = 'vetted';
+  case 'aria_softmax_augmented'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 100;
+    opts.num_eval_per_epoch = 200;
+    opts.learning_schedule = [...
+      5e-5*ones(1, 40000), 1e-5*ones(1, 40000), ...
+      5e-6*ones(1, 40000), 1e-6*ones(1, 40000),...
+      5e-7*ones(1, 40000), 1e-7*ones(1, 40000)];
+    opts.only_fc = true;
+    opts.label_type = 'original';
+    opts.loss_type = 'softmax';
 end
 rng('shuffle');
 cnn_mv1m(opts);

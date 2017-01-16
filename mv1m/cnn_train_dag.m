@@ -34,6 +34,8 @@ opts.plotStatistics = true;
 opts.iter_per_epoch = 80000;
 opts.iter_per_save = 1000;
 opts.num_eval_per_epoch = 8000;
+opts.label_type = 'regular';
+opts.loss_type = 'logistic';
 opts = vl_argparse(opts, varargin) ;
 opts
 
@@ -106,13 +108,27 @@ while ~done
 
   %TODO(phuc): need to do the class balancing here
   fprintf('Shuffling and balancing the data...\n');
-  [train_order, imdb] = select_training_examples(iter_per_save*batchSize, imdb); 
-  %train_random_order = randperm(numel(opts.train));
-  %train_random_order = train_random_order(1:min(iter_per_save*batchSize,...
-    %numel(train_random_order)));
+  [train_order, imdb, augmented_labels] = select_training_examples(...
+    iter_per_save*batchSize, imdb,...
+    'is_train', true);
+%   train_order = randperm(numel(opts.train));
+%   train_order = train_order(1:min(iter_per_save*batchSize,...
+%     numel(train_order)));
+%   imdb.images.augmented_labels = imdb.images.label;
   %params.train = opts.train(train_random_order) ; % shuffle
-  params.train = train_order ; % shuffle
-  params.val = opts.val(val_random_order(1:min(opts.num_eval_per_epoch, numel(val_random_order))));
+  params.train = struct();
+  params.train.order = train_order ; % shuffle
+  params.train.augmented_labels = augmented_labels ; % shuffle
+  
+  [val_order, imdb, augmented_labels_eval] = select_training_examples(...
+    opts.num_eval_per_epoch, imdb,...
+    'is_train', false);
+  
+  params.val = struct();
+  params.val.order = val_order;
+  params.val.augmented_labels = augmented_labels_eval;
+%   params.val = opts.val(val_random_order(1:min(opts.num_eval_per_epoch, numel(val_random_order))));
+  
   params.imdb = imdb ;
   params.getBatch = getBatch ;
   params.current_iter = current_iter;
@@ -170,7 +186,17 @@ while ~done
           subplot(numel(plots), 2, find(strcmp(p,plots))+num_plots) ;
           fmt = 'r-o';
         end
-        if ~strcmp(p, 'APs')
+        if strcmp(p, 'APs')
+          vals = {stats.(f).APs};
+          mean_val = cellfun(@(x) mean(NaNproof(x, imdb.tags_to_train)), vals);
+          std_val = cellfun(@(x) std(NaNproof(x, imdb.tags_to_train)), vals);
+          errorbar(stats.iter_recorded, mean_val, std_val, fmt);
+        elseif strcmp(p, 'prec_at_k')
+          vals = {stats.(f).prec_at_k};
+          mean_val = cellfun(@(x) mean(NaNproof(x, imdb.tags_to_train)), vals);
+          std_val = cellfun(@(x) std(NaNproof(x, imdb.tags_to_train)), vals);
+          errorbar(stats.iter_recorded, mean_val, std_val, fmt);
+        else
           values = zeros(0, length(stats.iter_recorded)) ;
           p = char(p) ;
           leg = {} ;
@@ -180,24 +206,11 @@ while ~done
             leg{end+1} = f ;
           end
           plot(stats.iter_recorded, values', fmt) ;
-        else
-          APs = {stats.(f).APs};
-          min_val = cellfun(@(x) min(NaNproof(x)), APs);
-          max_val = cellfun(@(x) max(NaNproof(x)), APs);
-          mean_val = cellfun(@(x) mean(NaNproof(x)), APs);
-          std_val = cellfun(@(x) std(NaNproof(x)), APs);
-          errorbar(stats.iter_recorded, mean_val, std_val, fmt);
         end
         xlabel('iterations') ;
         title(p) ;
         grid on ;
       end
-      % plotting 
-      %subplot(2, numel(plots)+1, 2*(num_plots+1)-1);
-      %semilogy(stats.iter_recorded, stats.learning_rate);
-      %xlabel('iterations') ;
-      %title('Learning rate') ;
-      %grid on ;
     end
     drawnow ;
 
@@ -214,7 +227,8 @@ end
 if isa(net, 'Composite'), net = net{1} ; end
 
 % -------------------------------------------------------------------------
-function APs = NaNproof(APs)
+function APs = NaNproof(APs, filter)
+APs = APs(filter);
 APs = APs(~isnan(APs));
 % -------------------------------------------------------------------------
 
@@ -262,7 +276,7 @@ end
 
 num = 0 ;
 epoch = params.epoch ;
-subset = params.(mode) ;
+subset = params.(mode).order ;
 adjustTime = 0 ;
 
 stats.num = 0 ; % return something even if subset = []
@@ -282,10 +296,17 @@ for t=1:params.batchSize:numel(subset)
     batchStart = t + (labindex-1) + (s-1) * numlabs ;
     batchEnd = min(t+params.batchSize-1, numel(subset)) ;
     batch = subset(batchStart : params.numSubBatches * numlabs : batchEnd) ;
+    batch_labels = params.(mode).augmented_labels(...
+      batchStart : params.numSubBatches * numlabs : batchEnd) ;
     num = num + numel(batch) ;
     if numel(batch) == 0, continue ; end
 
     inputs = params.getBatch(params.imdb, batch) ;
+    % get the original label
+    original_labels = inputs{4};
+    
+    % use the augmented labels instead
+    inputs{4} = batch_labels;
 
     if params.prefetch
       if s == params.numSubBatches
@@ -309,7 +330,8 @@ for t=1:params.batchSize:numel(subset)
       net.eval(inputs) ;
     end
 
-    resdb.gts{local_batch_index} = permute(inputs{4}, [3 4 1 2]);
+    resdb.gts{local_batch_index} = original_labels;
+%     resdb.gts{local_batch_index} = permute(inputs{4}, [3 4 1 2]);
     sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name})) ;
     resdb.fc1000.outputs{local_batch_index} =...
       gather(permute(net.vars(sel).value, [3 4 1 2]));
@@ -347,8 +369,10 @@ end
 resdb.gts = cat(2, resdb.gts{:});
 resdb.gts(resdb.gts==-1) = 0;
 resdb.fc1000.outputs = cat(2, resdb.fc1000.outputs{:});
-fprintf('Computing average precision\n');
+fprintf('Computing evaluation metrics\n');
 stats.APs = compute_average_precision(resdb.fc1000.outputs, resdb.gts);
+stats.prec_at_k = compute_precision_at_k(resdb.fc1000.outputs, resdb.gts,...
+  'k', 10);
 
 % Save back to state.
 state.stats.(mode) = stats ;

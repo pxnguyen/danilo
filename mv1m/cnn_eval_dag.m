@@ -26,7 +26,6 @@ opts.model_path = fullfile(opts.expDir, 'net-epoch-1-iter-101000.mat');
 opts.layers_to_store = {'sigmoid'};
 opts = vl_argparse(opts, varargin) ;
 opts.batchSize = 16;
-opts
 
 if ~exist(opts.expDir, 'dir'), mkdir(opts.expDir) ; end
 if isempty(opts.train), opts.train = find(imdb.images.set==1) ; end
@@ -35,7 +34,7 @@ if isnan(opts.train), opts.train = [] ; end
 if isnan(opts.val), opts.val = [] ; end
 prepareGPUs(opts, true) ;
 
-[net, state, stats] = loadState(opts.model_path) ;
+[net, state, ~] = loadState(opts.model_path) ;
 
 val_with_relevant_labels = sum(imdb.images.label(:, opts.val), 1) > 0;
 opts.val = opts.val(val_with_relevant_labels);
@@ -131,7 +130,6 @@ batch_index = findLastResultDB(params.resdb_path);
 save_iter = 1000;
 bs = params.batchSize;
 local_batch_index = 1;
-max_batch = ceil(numel(subset)/params.batchSize);
 resdb = struct();
 
 for t=1+batch_index*bs:bs:numel(subset)
