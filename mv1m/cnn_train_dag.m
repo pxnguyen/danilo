@@ -68,6 +68,10 @@ if start_epoch >= 1 && start_iter >= 1
   fprintf('%s: resuming by loading epoch %d iter %d\n', mfilename, start_epoch, start_iter) ;
   [net, state, stats] = loadState(modelPath(start_epoch, start_iter)) ;
   save_index = length(stats.iter_recorded);
+elseif start_epoch == 0 && start_iter == 0
+  [net, ~, ~] = loadState(modelPath(start_epoch, start_iter)) ;
+  save_index = 1;
+  state = [] ;
 else
   save_index = 1;
   state = [] ;
@@ -305,8 +309,10 @@ for t=1:params.batchSize:numel(subset)
     % get the original label
     original_labels = inputs{4};
     
-    % use the augmented labels instead
-    inputs{4} = batch_labels;
+    % if softmax, use the augmented labels instead
+    if strcmp(params.loss_type, 'softmax')
+      inputs{4} = batch_labels;
+    end
 
     if params.prefetch
       if s == params.numSubBatches
@@ -330,8 +336,11 @@ for t=1:params.batchSize:numel(subset)
       net.eval(inputs) ;
     end
 
-    resdb.gts{local_batch_index} = original_labels;
-%     resdb.gts{local_batch_index} = permute(inputs{4}, [3 4 1 2]);
+    if strcmp(params.loss_type, 'softmax')
+      resdb.gts{local_batch_index} = original_labels;
+    else
+      resdb.gts{local_batch_index} = permute(inputs{4}, [3 4 1 2]);
+    end
     sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name})) ;
     resdb.fc1000.outputs{local_batch_index} =...
       gather(permute(net.vars(sel).value, [3 4 1 2]));
@@ -393,10 +402,6 @@ end
 
 net.reset() ;
 net.move('cpu') ;
-% -------------------------------------------------------------------------
-function compute_mAP(resdb)
-resdb
-% -------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------
 function state = accumulateGradients(net, state, params, batchSize, parserv)

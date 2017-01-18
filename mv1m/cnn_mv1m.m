@@ -176,15 +176,14 @@ if nargout > 0
   if strcmp(opts.labelType, 'vetted')
     labels = double(full(imdb.images.vetted_labels(:, batch) > 0));
   else
-    labels = full(imdb.images.label(:, batch));
+    labels = double(full(imdb.images.label(:, batch)));
   end
   
   switch opts.loss_type
     case 'logistic'
       labels(labels==0) = -1;
       labels = permute(labels, [3, 4, 1, 2]);
-%     case 'softmax'
-%       labels = permute(labels, [3, 4, 2, 1]);
+    case 'softmax'
   end
   %TODO: need to throw an exception here.
   num_classes = numel(imdb.classes.name);
