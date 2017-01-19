@@ -145,6 +145,10 @@ for t=1+batch_index*bs:bs:numel(subset)
     if numel(batch) == 0, continue ; end
 
     inputs = params.getBatch(params.imdb, batch) ;
+    if strcmp(net.layers(end-1).block.loss, 'softmaxlog')
+      input_size = size(inputs{4});
+      inputs{4} = ones(input_size(4), 1);
+    end
 
     if params.prefetch
       if s == params.numSubBatches
