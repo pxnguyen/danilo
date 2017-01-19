@@ -71,6 +71,7 @@ if start_epoch >= 1 && start_iter >= 1
 elseif start_epoch == 0 && start_iter == 0
   [net, ~, ~] = loadState(modelPath(start_epoch, start_iter)) ;
   save_index = 1;
+  start_epoch = 1;
   state = [] ;
 else
   save_index = 1;
@@ -114,7 +115,7 @@ while ~done
   fprintf('Shuffling and balancing the data...\n');
   [train_order, imdb, augmented_labels] = select_training_examples(...
     iter_per_save*batchSize, imdb,...
-    'is_train', true);
+    'is_train', true, 'label_type', opts.label_type, 'loss_type', opts.loss_type);
 %   train_order = randperm(numel(opts.train));
 %   train_order = train_order(1:min(iter_per_save*batchSize,...
 %     numel(train_order)));

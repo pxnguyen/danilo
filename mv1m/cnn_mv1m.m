@@ -134,7 +134,7 @@ bopts.test = struct(...
 
 bopts.frame_dir = opts.frame_dir;
 bopts.num_frame = opts.num_frame;
-bopts.labelType = opts.label_type;
+bopts.label_type = opts.label_type;
 bopts.loss_type = opts.loss_type;
 
 % Copy the parameters for data augmentation
@@ -173,8 +173,8 @@ end
 all_files = cat(2, all_files{:});
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
 if nargout > 0
-  if strcmp(opts.labelType, 'vetted')
-    labels = double(full(imdb.images.vetted_labels(:, batch) > 0));
+  if strcmp(opts.label_type, 'vetted')
+    labels = double(full(imdb.images.vetted_label(:, batch)));
   else
     labels = double(full(imdb.images.label(:, batch)));
   end

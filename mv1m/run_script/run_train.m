@@ -111,8 +111,16 @@ switch exp_name
     opts.num_eval_per_epoch = 4000;
     opts.learning_schedule = [5e-6 * ones(1, 80000), 1e-6*ones(1, 40000), 5e-7*ones(1, 40000)];
     opts.only_fc = true;
-%     opts.label_type = 'vetted';
     opts.loss_type = 'logistic';
+    opts.label_type = 'vetted';clc
+  case 'aria_ub2' % sample as aria_upperbound, but sample from 1000 instead of 105.
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.num_eval_per_epoch = 8000;
+    opts.learning_schedule = [5e-6 * ones(1, 80000), 1e-6*ones(1, 40000), 5e-7*ones(1, 40000)];
+    opts.only_fc = true;
+    opts.loss_type = 'logistic';
+    opts.label_type = 'vetted';
   case 'aria_softmax_augmented'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
