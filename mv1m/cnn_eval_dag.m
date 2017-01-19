@@ -62,13 +62,12 @@ fprintf('Combining all the resdb\n');
 list = dir(fullfile(path, sprintf('%s-part-*.mat', name)));
 resdb = struct();
 resdb.names = cell(length(list), 1);
-resdb.predictions = cell(length(list), 1);
 for list_index = 1:length(list)
   fprintf('%d/%d\n', list_index, length(list));
   part_resdb = load(fullfile(path, list(list_index).name));
   resdb.names{list_index} = part_resdb.name;
   resdb.video_ids{list_index} = part_resdb.video_ids;
-  resdb.gts{list_index} = part_resdb.gts;
+%   resdb.gts{list_index} = part_resdb.gts;
   for layer_index = 1:numel(opts.layers_to_store)
     layer_name = opts.layers_to_store{layer_index};
     resdb.(layer_name).outputs{list_index} =...
@@ -79,8 +78,8 @@ end
 
 resdb.names = cat(2, resdb.names{:});
 resdb.video_ids = cat(2, resdb.video_ids{:});
-resdb.gts = cat(2, resdb.gts{:});
-resdb.gts(resdb.gts==-1) = 0;
+% resdb.gts = cat(2, resdb.gts{:});
+% resdb.gts(resdb.gts==-1) = 0;
 for layer_index = 1:numel(opts.layers_to_store)
   layer_name = opts.layers_to_store{layer_index};
   resdb.(layer_name).outputs =...
@@ -166,7 +165,6 @@ for t=1+batch_index*bs:bs:numel(subset)
     % find the sigmoid layers
     resdb.name{local_batch_index} = params.imdb.images.name(batch);
     resdb.video_ids{local_batch_index} = batch;
-    resdb.gts{local_batch_index} = permute(inputs{4}, [3 4 1 2]);
     for layer_index = 1:length(params.layers_to_store)
       layer_name = params.layers_to_store{layer_index};
       sel = find(cellfun(@(x) strcmp(x, layer_name), {net.vars.name})) ;
@@ -205,7 +203,6 @@ for t=1+batch_index*bs:bs:numel(subset)
     fprintf('Saving the intermediate resdb\n');
     resdb.name = cat(2, resdb.name{:});
     resdb.video_ids = cat(2, resdb.video_ids{:});
-    resdb.gts = cat(2, resdb.gts{:});
     for layer_index = 1:length(params.layers_to_store)
       layer_name = params.layers_to_store{layer_index};
       resdb.(layer_name).outputs = cat(2, resdb.(layer_name).outputs{:});

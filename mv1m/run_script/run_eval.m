@@ -8,10 +8,12 @@ switch hostname
   case 'pi'
     opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/', exp_name);
     opts.frame_dir = '/mnt/hermes/nguyenpx/vine-images/';
+    opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
   case 'omega'
     opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
     opts.frame_dir = '/home/nguyenpx/vine-images/';
     opts.dataDir = '/home/nguyenpx/vine-large-2';
+    opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
 end
 opts.imdbPath = fullfile(opts.expDir, sprintf('%s_imdb.mat', exp_name));
 opts.train = struct();
@@ -44,17 +46,19 @@ fprintf('Loading resdb\n');
 tic; resdb = load(opts.resdb_path); toc;
 
 fprintf('Computing APs...\n');
-info.AP_tag = compute_average_precision(resdb.fc1000.outputs, resdb.gts);
+gts = full(imdb.images.label(:, resdb.video_ids));
+vetted_gts = imdb.images.vetted_label(:, resdb.video_ids);
+info.AP_tag = compute_average_precision(resdb.fc1000.outputs, gts);
 
 % compute the prec@k
 fprintf('Computing prec@K...\n');
-info.prec_at_k = compute_precision_at_k(resdb.fc1000.outputs, resdb.gts);
+info.prec_at_k = compute_precision_at_k(resdb.fc1000.outputs, gts);
 
 % computing the adjusted prec@k
 if isfield(imdb.images, 'vetted_label')
   fprintf('Computing adjusted prec@K...\n');
   info.adjusted_prec_at_k = compute_precision_at_k(resdb.fc1000.outputs,...
-    imdb.images.vetted_label(:, resdb.video_ids));
+    vetted_gts);
 end
 
 info_path = fullfile(opts.expDir, 'info.mat');
