@@ -56,6 +56,28 @@ storage_path = 'aria_train';
 resdb = load('/mnt/large/pxnguyen/cnn_exp/aria_self_learn/resdb.mat');
 storage_path = 'aria_train_all';
 
+%% make the imdb with the top-8
+aria_top8_imdb_path = '/mnt/large/pxnguyen/cnn_exp/aria_top8/aria_top8_imdb.mat';
+aria_top8_imdb = aria_imdb;
+test_images = resdb.video_ids;
+prob = resdb.fc1000.outputs;
+selected_indeces = find(aria_imdb.selected);
+k = 8;
+for index = 1:length(selected_indeces)
+  selected_index = selected_indeces(index);
+  tag_name = aria_imdb.classes.name{selected_index};
+  gts = logical(resdb.gts(selected_index, :));
+  test_images_tag = test_images(~gts);
+  
+  fprintf('working on %s\n', tag_name);
+  tag_prob = prob(selected_index, ~gts); % videos do not have this tag
+  [scores_order, order] = sort(tag_prob, 'descend');
+  toflip = test_images_tag(order(1:k));
+  aria_top8_imdb.images.label(selected_index, toflip) = 1;
+end
+
+save(aria_top8_imdb_path, '-struct', 'aria_top8_imdb')
+
 %%
 test_images = resdb.video_ids;
 prob = resdb.fc1000.outputs;

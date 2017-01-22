@@ -100,11 +100,6 @@ switch exp_name
     opts.iter_per_save = 2000;
     opts.learning_schedule = [5e-5 * ones(1, 80000), 5e-6*ones(1, 100000), 4e-7*ones(1, 100000)];
     opts.only_fc = true;
-  case 'nash'
-    opts.iter_per_epoch = 100000;
-    opts.iter_per_save = 2000;
-    opts.learning_schedule = [5e-5 * ones(1, 100000), 5e-6*ones(1, 100000), 4e-7*ones(1, 100000)];
-    opts.only_fc = true;
   case 'aria_upperbound'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
@@ -129,6 +124,15 @@ switch exp_name
     opts.only_fc = true;
     opts.loss_type = 'logistic';
     opts.label_type = 'vetted';
+  case 'aria_top8'
+    % self-learn the top8 ventured videos for all tags.
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 200;
+    opts.num_eval_per_epoch = 400;
+    opts.learning_schedule = [5e-6 * ones(1, 80000), 1e-6*ones(1, 40000), 5e-7*ones(1, 40000)];
+    opts.only_fc = true;
+    opts.loss_type = 'logistic';
+    opts.label_type = 'original';
   case 'aria_softmax_augmented'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;

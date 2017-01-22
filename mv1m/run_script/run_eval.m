@@ -47,18 +47,24 @@ tic; resdb = load(opts.resdb_path); toc;
 
 fprintf('Computing APs...\n');
 gts = full(imdb.images.label(:, resdb.video_ids));
-vetted_gts = imdb.images.vetted_label(:, resdb.video_ids);
 info.AP_tag = compute_average_precision(resdb.fc1000.outputs, gts);
 
 % compute the prec@k
 fprintf('Computing prec@K...\n');
-info.prec_at_k = compute_precision_at_k(resdb.fc1000.outputs, gts);
+info.prec_at_8 = compute_precision_at_k(resdb.fc1000.outputs, gts, 'k', 8);
+info.prec_at_16 = compute_precision_at_k(resdb.fc1000.outputs, gts, 'k', 16);
+info.prec_at_32 = compute_precision_at_k(resdb.fc1000.outputs, gts, 'k', 32);
 
 % computing the adjusted prec@k
 if isfield(imdb.images, 'vetted_label')
   fprintf('Computing adjusted prec@K...\n');
-  info.adjusted_prec_at_k = compute_precision_at_k(resdb.fc1000.outputs,...
-    vetted_gts);
+  vetted_gts = full(imdb.images.vetted_label(:, resdb.video_ids));
+  info.adjusted_prec_at_8 = compute_precision_at_k(resdb.fc1000.outputs,...
+    vetted_gts, 'k', 8);
+  info.adjusted_prec_at_16 = compute_precision_at_k(resdb.fc1000.outputs,...
+    vetted_gts, 'k', 16);
+  info.adjusted_prec_at_32 = compute_precision_at_k(resdb.fc1000.outputs,...
+    vetted_gts, 'k', 32);
 end
 
 info_path = fullfile(opts.expDir, 'info.mat');

@@ -17,6 +17,8 @@ if strcmp(opts.label_type, 'original')
   labels = imdb.images.label;
 elseif strcmp(opts.label_type, 'vetted')
   labels = imdb.images.vetted_label > 0;
+else
+  error('Cannot recognize the label type: %s', opts.label_type);
 end
 
 if isfield(imdb, 'tags_to_train')
