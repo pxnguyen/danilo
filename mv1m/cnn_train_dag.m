@@ -34,7 +34,7 @@ opts.plotStatistics = true;
 opts.iter_per_epoch = 80000;
 opts.iter_per_save = 1000;
 opts.num_eval_per_epoch = 8000;
-opts.label_type = 'regular';
+opts.label_type = 'original';
 opts.loss_type = 'logistic';
 opts = vl_argparse(opts, varargin) ;
 opts
@@ -376,13 +376,13 @@ for t=1:params.batchSize:numel(subset)
   fprintf('\n');
 end
 
-resdb.gts = cat(2, resdb.gts{:});
-resdb.gts(resdb.gts==-1) = 0;
-resdb.fc1000.outputs = cat(2, resdb.fc1000.outputs{:});
-fprintf('Computing evaluation metrics\n');
-stats.APs = compute_average_precision(resdb.fc1000.outputs, resdb.gts);
-stats.prec_at_k = compute_precision_at_k(resdb.fc1000.outputs, resdb.gts,...
-  'k', 10);
+% resdb.gts = cat(2, resdb.gts{:});
+% resdb.gts(resdb.gts==-1) = 0;
+% resdb.fc1000.outputs = cat(2, resdb.fc1000.outputs{:});
+% fprintf('Computing evaluation metrics\n');
+% stats.APs = compute_average_precision(resdb.fc1000.outputs, resdb.gts);
+% stats.prec_at_k = compute_precision_at_k(resdb.fc1000.outputs, resdb.gts,...
+%   'k', 10);
 
 % Save back to state.
 state.stats.(mode) = stats ;

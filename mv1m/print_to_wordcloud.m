@@ -60,6 +60,7 @@ storage_path = 'aria_train_all';
 aria_top8_imdb_path = '/mnt/large/pxnguyen/cnn_exp/aria_top8/aria_top8_imdb.mat';
 aria_top8_imdb = aria_imdb;
 test_images = resdb.video_ids;
+aria_top8_imdb.tags_to_train = aria_imdb.selected;
 prob = resdb.fc1000.outputs;
 selected_indeces = find(aria_imdb.selected);
 k = 8;
@@ -73,7 +74,7 @@ for index = 1:length(selected_indeces)
   tag_prob = prob(selected_index, ~gts); % videos do not have this tag
   [scores_order, order] = sort(tag_prob, 'descend');
   toflip = test_images_tag(order(1:k));
-  aria_top8_imdb.images.label(selected_index, toflip) = 1;
+  aria_top8_imdb.images.label(selected_index, toflip) = 1;  
 end
 
 save(aria_top8_imdb_path, '-struct', 'aria_top8_imdb')

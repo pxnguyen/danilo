@@ -1,4 +1,4 @@
-function [indeces, imdb, augmented_labels]=select_training_examples(num_train, imdb, varargin)
+function [indeces, imdb, augmented_labels]=select_examples(num_train, imdb, varargin)
 % Select the training examples with class-balancing
 % Args:
 %   num_train: the number of training example to query
@@ -9,6 +9,7 @@ function [indeces, imdb, augmented_labels]=select_training_examples(num_train, i
 opts.label_type = 'original';
 opts.loss_type = 'softmax';
 opts.is_train = true;
+opts.num_class_to_query = 500;
 opts = vl_argparse(opts, varargin) ;
 
 is_set = (imdb.images.set==1);
@@ -29,9 +30,12 @@ else
   tags_to_train_indeces = 1:num_tag;
 end
 
-multiple = 4; % this helps speed up the selection process
-tag_indeces = randi(num_tag, [1 num_train/multiple]);
-tag_indeces = tags_to_train_indeces(tag_indeces);
+% multiple = 4; % this helps speed up the selection process
+rand_order = randperm(num_tag);
+rand_order = rand_order(1:opts.num_class_to_query);
+multiple = num_train/opts.num_class_to_query;
+% tag_indeces = randi(num_tag, [1 num_train/opts.num_class_to_query]);
+tag_indeces = tags_to_train_indeces(rand_order);
 indeces = zeros(num_train, 1);
 if strcmp(opts.loss_type, 'softmax')
   augmented_labels = zeros(num_train, 1);
@@ -39,7 +43,8 @@ else
   augmented_labels = labels;
 end
 
-for index = 1:numel(tag_indeces) % for each selected tag
+for index = 1:opts.num_class_to_query % for each selected tag
+  index
   tag = tag_indeces(index);
   vids_with_tag = find(labels(tag, is_set));
   if isempty(vids_with_tag)
