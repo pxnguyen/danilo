@@ -149,8 +149,8 @@ switch exp_name
     opts.loss_type = 'softmax';
   case 'aria128'
     opts.iter_per_epoch = 100000;
-    opts.iter_per_save = 500;
-    opts.num_eval_per_epoch = 500;
+    opts.iter_per_save = 2000;
+    opts.num_eval_per_epoch = 8000;
     opts.learning_schedule = [...
       1e-5*ones(1, 40000),...
       5e-6*ones(1, 40000), 1e-6*ones(1, 40000),...
