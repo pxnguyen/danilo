@@ -17,6 +17,7 @@ opts.num_frame = 5;
 opts.only_fc = true;
 opts.dropout_ratio = 0.0;
 opts.loss_type = 'logistic';
+opts.add_fc128 = false;
 opts = vl_argparse(opts, varargin) ;
 
 net = dagnn.DagNN.loadobj(load(opts.pretrained_path));
@@ -64,7 +65,7 @@ out = numel(net.meta.classes.name);
 %net.layers(1).block.size[3] = opts.num_flow * 2; %TODO(phucng): change 20 to num_flow
 
 % remove 'fc1000'
-last_layer_name = net.layers(end).name;
+fc1000_name = net.layers(end).name; % fc1000
 net.removeLayer(net.layers(end).name);
 
 prev_name = net.layers(end).name;
@@ -81,12 +82,30 @@ if opts.only_fc
   end
 end
 
+% add the fc128 layer
+if opts.add_fc128
+  fc_block = dagnn.Conv('size', [h, w, in, 128], 'hasBias', true, ...
+    'stride', 1, 'pad', 0);
+  net.addLayer('fc128', fc_block, ...
+    prev_name, 'fc128',...
+    {'fc128_f', 'fc128_b'});
+
+  % init weights
+  p = net.getParamIndex(net.layers(end).params) ;
+  params = net.layers(end).block.initParams() ;
+  params = cellfun(@gather, params, 'UniformOutput', false) ;
+  [net.params(p).value] = deal(params{:}) ;
+
+  prev_name = 'fc128';
+  in = 128;
+end
+
 % re-add the fc layer
 fc_block = dagnn.Conv('size', [h, w, in, out], 'hasBias', true, ...
   'stride', 1, 'pad', 0);
-net.addLayer(last_layer_name, fc_block, ...
-  prev_name, last_layer_name,...
-  {[last_layer_name '_f'], [last_layer_name '_b']});
+net.addLayer(fc1000_name, fc_block, ...
+  prev_name, fc1000_name,...
+  {[fc1000_name '_f'], [fc1000_name '_b']});
 
 p = net.getParamIndex(net.layers(end).params) ;
 params = net.layers(end).block.initParams() ;

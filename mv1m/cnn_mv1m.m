@@ -32,6 +32,7 @@ opts.only_fc = false;
 opts.dropout_ratio = 0;
 opts.label_type = 'original';
 opts.loss_type = 'logistic';
+opts.add_fc128 = false;
 opts.train = struct();
 opts = vl_argparse(opts, varargin) ;
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
@@ -83,6 +84,7 @@ if isempty(opts.network)
         'only_fc', opts.only_fc, ...
         'dropout_ratio', opts.dropout_ratio,...
         'loss_type', opts.loss_type,...
+        'add_fc128', opts.add_fc128,...
         'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
   end

@@ -7,11 +7,9 @@ hostname = strtrim(hostname);
 switch hostname
   case 'pi'
     opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/', exp_name);
-    opts.frame_dir = '/mnt/hermes/nguyenpx/vine-images/';
     opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
   case 'omega'
     opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
-    opts.frame_dir = '/home/nguyenpx/vine-images/';
     opts.dataDir = '/home/nguyenpx/vine-large-2';
     opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
 end
@@ -32,9 +30,15 @@ opts.train = struct();
 opts.train.gpus = [1];
 opts.layers_to_store = {'fc1000'};
 
+switch exp_name
+  case 'aria_cotags'
+    opts.features = {'cotags'};
+    opts.set_to_run = 'train';
+  case 'desc'
+end
+
 % extracting the features
 if ~exist(opts.resdb_path, 'file')
-  opts.features = {'desc'};
   cnn_mv1m_evaluate_language(opts);
 end
 
@@ -46,12 +50,12 @@ info.train_vid_count = sum(imdb.images.label(:, train_indeces), 2);
 fprintf('Loading resdb\n');
 tic; resdb = load(opts.resdb_path); toc;
 
-fprintf('Computing APs...\n');
-info.AP_tag = compute_average_precision(resdb.fc1000.outputs, resdb.gts);
+% fprintf('Computing APs...\n');
+% info.AP_tag = compute_average_precision(resdb.fc1000.outputs, resdb.gts);
 
 % compute the prec@K
-fprintf('Computing prec@K...\n');
-info.prec_at_k = compute_precision_at_k(resdb.fc1000.outputs, resdb.gts);
+% fprintf('Computing prec@K...\n');
+% info.prec_at_k = compute_precision_at_k(resdb.fc1000.outputs, resdb.gts);
 
 info_path = fullfile(opts.expDir, 'info.mat');
 fprintf('saving the AP info to %s\n', info_path);

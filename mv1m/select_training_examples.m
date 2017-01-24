@@ -40,11 +40,10 @@ indeces = zeros(num_train, 1);
 if strcmp(opts.loss_type, 'softmax')
   augmented_labels = zeros(num_train, 1);
 else
-  augmented_labels = labels;
+  augmented_labels = labels;  
 end
 
 for index = 1:opts.num_class_to_query % for each selected tag
-  index
   tag = tag_indeces(index);
   vids_with_tag = find(labels(tag, is_set));
   if isempty(vids_with_tag)

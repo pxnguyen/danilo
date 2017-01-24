@@ -147,6 +147,18 @@ switch exp_name
     opts.only_fc = true;
     opts.label_type = 'original';
     opts.loss_type = 'softmax';
+  case 'aria128'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 500;
+    opts.num_eval_per_epoch = 500;
+    opts.learning_schedule = [...
+      1e-5*ones(1, 40000),...
+      5e-6*ones(1, 40000), 1e-6*ones(1, 40000),...
+      5e-7*ones(1, 40000), 1e-7*ones(1, 40000)];
+    opts.only_fc = true;
+    opts.label_type = 'original';
+    opts.loss_type = 'logistic';
+    opts.add_fc128 = true;
 end
 rng('shuffle');
 cnn_mv1m(opts);

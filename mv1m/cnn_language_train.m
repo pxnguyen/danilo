@@ -142,5 +142,3 @@ if nargout > 0
   labels = permute(labels, [3, 4, 1, 2]);
   varargout{1} = {'input', data, 'label', labels} ;
 end
-
-function corrupt_data(cotags_data)
