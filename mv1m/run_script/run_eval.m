@@ -30,7 +30,7 @@ opts.model_path = fullfile(opts.expDir,...
 
 opts.train = struct();
 opts.train.gpus = [1];
-opts.layers_to_store = {'fc1000'};
+opts.layers_to_store = {'pool3D5', 'fc1000'};
 
 % extracting the features
 if ~exist(opts.resdb_path, 'file')
