@@ -30,13 +30,24 @@ if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
 %                                                              Prepare data
 % -------------------------------------------------------------------------
 
-if exist(opts.imdbPath)
+if exist(opts.imdbPath, 'file')
   imdb = load(opts.imdbPath) ;
   imdb.imageDir = fullfile(opts.dataDir, 'videos');
+else
+  error('imdb not found at %s', opts.imdbPath);
 end
+
+if exist(fullfile(opts.expDir, 'latent_labels.mat'), 'file')
+  fprintf('Loading latent labels...\n');
+  latent_labels = load(fullfile(opts.expDir, 'latent_labels.mat'));
+  imdb.latent_labels = latent_labels;
+end
+
 % -------------------------------------------------------------------------
 %                                                             Prepare model
 % -------------------------------------------------------------------------
+
+pretrained_path = fullfile(opts.expDir, 'net-epoch-0-iter-0.mat');
 
 if isempty(opts.network)
   switch opts.modelType
@@ -45,6 +56,7 @@ if isempty(opts.network)
         'learning_schedule', opts.learning_schedule, ...
         'batch_size', opts.batch_size, ...
         'features', opts.features, ...
+        'pretrained_path', pretrained_path, ...
         'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
   end
@@ -67,6 +79,7 @@ end
   'iter_per_save', opts.iter_per_save,...
   'prefetch', true, ...
   'nesterovUpdate', true, ...
+  'derOutputs', {'loss1', 1, 'loss2', 0.5},...
   net.meta.trainOpts, ...
   opts.train) ;
 
@@ -88,8 +101,12 @@ function varargout = getBatch(opts, useGpu, networkType, imdb, batch)
 % -------------------------------------------------------------------------
 images = strcat([imdb.imageDir filesep], imdb.images.name(batch)) ;
 if isempty(images); return; end;
+if ~isempty(batch) && imdb.images.set(batch(1)) == 1
+  phase = 'train' ;
+else
+  phase = 'test' ;
+end
 
-w2v_storage = '/home/phuc/Research/word2vec_storage';
 video_paths = images;
 
 augmented_labels = imdb.images.label(:, batch);
@@ -97,6 +114,8 @@ data = cell(numel(opts.features), 1);
 for feature_index = 1:numel(opts.features)
   feature = opts.features{feature_index};
   if strcmp(feature, 'desc')
+    error('This code is not working right now. Needs to be fixed');
+    w2v_storage = '/home/phuc/Research/word2vec_storage';
     w2v_data = cell(length(video_paths), 1);
     for video_index = 1:length(video_paths)
       video_path = video_paths{video_index};
@@ -117,28 +136,48 @@ for feature_index = 1:numel(opts.features)
     w2v_data = cat(1, w2v_data{:});
     data{feature_index} = w2v_data';
   elseif strcmp(feature, 'cotags')
-    cotags_data = full(imdb.images.label(:, batch));
-    rand_noise = rand(size(cotags_data));
+    observed_input = full(imdb.images.label(:, batch));
+    corrupted_input = full(imdb.images.label(:, batch));
+    rand_noise = rand(size(corrupted_input));
     prob = 0.5;
     for video_index = 1:length(video_paths)
-      %indeces = cotags_data(:, video_index);
       rand_noise_vid = rand_noise(:, video_index);
       to_flip_off = rand_noise_vid > prob;
-      cotags_data(to_flip_off, video_index) = 0;
+      corrupted_input(to_flip_off, video_index) = 0;
     end
-    data{feature_index} = cotags_data;
+    corrupted_input = permute(corrupted_input, [3 4 1 2]);
+    observed_input = permute(observed_input, [3 4 1 2]);
+    corrupted_input = gpuArray(single(corrupted_input));
+    observed_input = gpuArray(single(observed_input));
+    
+    latent_label = zeros(4000, numel(batch), 5);
+    neighbor_idx = imdb.closest_neighbors(:, batch);
+    for i=1:5
+      latent_label(imdb.tags_to_train, :, i) = ...
+        imdb.latent_labels.soft_labels(:, neighbor_idx(i, :));
+    end
+    latent_label = max(latent_label, [], 3);
+    latent_label = permute(latent_label, [3 4 1 2]);
+    latent_label = gpuArray(single(latent_label));
+    
+    % loading the latent labels
+    if strcmp(phase, 'train')
+      varargout{1} = {'corrupted_input', corrupted_input,...
+        'observed_input', observed_input,...
+        'latent_label', latent_label};
+    else
+      varargout{1} = {'corrupted_input', corrupted_input,...
+        'observed_input', observed_input,...
+        'latent_label', observed_input};
+    end
   end
 end
 
-data = cat(1, data{:});
-data = permute(data, [3 4 1 2]);
-data = gpuArray(single(data));
-
-if nargout > 0
-  labels = double(full(imdb.images.label(:, batch)));
-  labels(labels==0) = -1;
-  %labels = full(imdb.images.augmented_labels(:, batch)) ;
-  % labels has to be W x H x D x N
-  labels = permute(labels, [3, 4, 1, 2]);
-  varargout{1} = {'input', data, 'label', labels} ;
-end
+% if nargout > 0
+%   labels = double(full(imdb.images.label(:, batch)));
+%   labels(labels==0) = -1;
+%   %labels = full(imdb.images.augmented_labels(:, batch)) ;
+%   % labels has to be W x H x D x N
+%   labels = permute(labels, [3, 4, 1, 2]);
+%   varargout{1} = {'input', data, 'label', labels} ;
+% end

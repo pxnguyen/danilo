@@ -50,6 +50,13 @@ else
   save(opts.imdbPath, '-struct', 'imdb') ;
 end
 
+if exist(fullfile(opts.expDir, 'latent_labels.mat'), 'file')
+  fprintf('Loading latent labels...\n');
+  latent_labels = load(fullfile(opts.expDir, 'latent_labels.mat'));
+  fprintf('Done\n');
+  imdb.latent_labels = latent_labels;
+end
+
 % Compute image statistics (mean, RGB covariances, etc.)
 imageStatsPath = fullfile(opts.expDir, 'imageStats.mat') ;
 if exist(imageStatsPath)
@@ -175,17 +182,34 @@ end
 all_files = cat(2, all_files{:});
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
 if nargout > 0
-  if strcmp(opts.label_type, 'vetted')
-    labels = double(full(imdb.images.vetted_label(:, batch)));
-  else
-    labels = double(full(imdb.images.label(:, batch)));
+  switch opts.label_type
+    case 'vetted'
+      labels = double(full(imdb.images.vetted_label(:, batch)));
+    case 'original'
+      labels = double(full(imdb.images.label(:, batch)));
+    case 'latent'
+      if strcmp(phase, 'train')
+        labels = zeros(4000, numel(batch));
+        for batch_index = 1:numel(batch)
+          neighbor_idx = imdb.closest_neighbors(:, batch(batch_index));
+          neighbor_latent_labels = imdb.latent_labels.value(:, neighbor_idx);
+          neighbor_latent_label = max(neighbor_latent_labels, [], 2);
+          labels(:, batch_index) = neighbor_latent_label;
+        end
+      else
+        labels = double(full(imdb.images.label(:, batch)));
+      end
   end
   
   switch opts.loss_type
     case 'logistic'
       labels(labels==0) = -1;
       labels = permute(labels, [3, 4, 1, 2]);
+    case 'logistic2'
+      labels = permute(labels, [3, 4, 1, 2]);
     case 'softmax'
+    otherwise
+      error('Unrecognized loss type: %s', opts.loss_type);
   end
   %TODO: need to throw an exception here.
   num_classes = numel(imdb.classes.name);

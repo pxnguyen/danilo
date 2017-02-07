@@ -69,7 +69,8 @@ if start_epoch >= 1 && start_iter >= 1
   [net, state, stats] = loadState(modelPath(start_epoch, start_iter)) ;
   save_index = length(stats.iter_recorded);
 elseif start_epoch == 0 && start_iter == 0
-  [net, ~, ~] = loadState(modelPath(start_epoch, start_iter)) ;
+%   [net, ~, ~] = loadState(modelPath(start_epoch, start_iter)) ;
+  %net.layers(end-1).block.loss = 'logistic2'; %TODO: get rid of this
   save_index = 1;
   start_epoch = 1;
   state = [] ;
@@ -79,7 +80,9 @@ else
 end
 
 sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name}));
-net.vars(sel).precious = 1;
+if ~isempty(sel);
+  net.vars(sel).precious = 1;
+end
 
 epoch = start_epoch;
 current_iter = start_iter;
@@ -342,9 +345,9 @@ for t=1:params.batchSize:numel(subset)
     else
       resdb.gts{local_batch_index} = permute(inputs{4}, [3 4 1 2]);
     end
-    sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name})) ;
-    resdb.fc1000.outputs{local_batch_index} =...
-      gather(permute(net.vars(sel).value, [3 4 1 2]));
+%     sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name})) ;
+%     resdb.fc1000.outputs{local_batch_index} =...
+%       gather(permute(net.vars(sel).value, [3 4 1 2]));
     local_batch_index = local_batch_index  + 1;
   end
 

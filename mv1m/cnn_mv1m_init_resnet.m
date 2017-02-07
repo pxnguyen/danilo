@@ -146,8 +146,14 @@ lName = net.layers(end).name;
 switch opts.loss_type
   case 'logistic'
     net.addLayer('loss', dagnn.Loss('loss', 'logistic'), {lName, 'label'}, 'objective');
+  case 'logistic2'
+    net.addLayer('loss', dagnn.Loss('loss', 'logistic2'), {lName, 'label'}, 'objective');
   case 'softmax'
     net.addLayer('loss', dagnn.Loss('loss', 'softmaxlog'), {lName, 'label'}, 'objective') ;
+  case 'L2'
+    net.addLayer('loss', dagnn.Loss('loss', 'softmaxlog'), {lName, 'label'}, 'objective') ;
+  otherwise
+      error('Unrecognized loss type: %s', opts.loss_type);
 end
 
 % performance metrics
