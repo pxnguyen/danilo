@@ -159,6 +159,19 @@ switch exp_name
     opts.label_type = 'original';
     opts.loss_type = 'logistic';
     opts.add_fc128 = true;
+  case 'aria_cotraining'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.num_eval_per_epoch = 8000;
+    opts.learning_schedule = [1e-5 * ones(1, 80000),...
+      5e-6*ones(1, 20000), 1e-6*ones(1, 20000),...
+      5e-7*ones(1, 20000), 1e-7*ones(1, 20000),...
+      ];
+    opts.only_fc = true;
+    opts.label_type = 'latent';
+    opts.loss_type = 'logistic2';
+  otherwise
+    error('Unrecognized experiment %s', exp_name);
 end
 rng('shuffle');
 cnn_mv1m(opts);

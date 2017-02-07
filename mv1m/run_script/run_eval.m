@@ -1,4 +1,4 @@
-function run_eval(exp_name)
+function run_eval(exp_name, mode)
 run('matconvnet/matlab/vl_setupnn.m');
 addpath(genpath('MexConv3D'))
 opts = struct();
@@ -24,13 +24,20 @@ opts.imdbPath = fullfile(opts.expDir, sprintf('%s_imdb.mat', exp_name));
 % find the latest trained checkpoint
 [epoch, iter] = findLastCheckpoint(opts.expDir);
 opts.resdb_path = fullfile(opts.expDir,...
-  sprintf('resdb-iter-%d.mat', iter));
+  sprintf('resdb-iter-%d-%s.mat', iter, mode));
 opts.model_path = fullfile(opts.expDir,...
   sprintf('net-epoch-%d-iter-%d.mat', epoch, iter));
 
 opts.train = struct();
 opts.train.gpus = [1];
-opts.layers_to_store = {'pool5', 'fc1000'};
+opts.set_to_run = mode;
+switch exp_name
+  case 'aria128'
+    opts.layers_to_store = {'fc128', 'fc1000'};
+  case 'aria'
+    opts.layers_to_store = {'pool5', 'fc1000'};
+  otherwise
+end
 
 % extracting the features
 if ~exist(opts.resdb_path, 'file')

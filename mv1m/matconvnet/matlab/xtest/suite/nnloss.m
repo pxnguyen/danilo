@@ -1,8 +1,9 @@
 classdef nnloss < nntest
   properties (TestParameter)
-    loss = {...
-      'classerror', 'log', 'softmaxlog', 'mhinge', 'mshinge', ...
-      'binaryerror', 'binarylog', 'logistic', 'hinge'}
+%     loss = {...
+%       'classerror', 'log', 'softmaxlog', 'mhinge', 'mshinge', ...
+%       'binaryerror', 'binarylog', 'logistic', 'logistic2', 'hinge'}
+    loss = { 'logistic2' }
     weighed = {false, true}
   end
 
@@ -39,7 +40,7 @@ classdef nnloss < nntest
           x = test.randn(h,w, numClasses, numImages) / test.range ;
         case {'mhinge', 'mshinge', 'classerror'}
           x = test.randn(h,w, numClasses, numImages) / test.range ;
-        case {'hinge', 'logistic', 'binaryerror'}
+        case {'hinge', 'logistic', 'logistic2', 'binaryerror'}
           x = test.randn(h,w, numAttributes, numImages) / test.range ;
       end
       dzdy = test.randn(1,1) / test.range ;

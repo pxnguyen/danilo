@@ -14,12 +14,15 @@ opts = vl_argparse(opts, varargin) ;
 
 is_set = (imdb.images.set==1);
 
-if strcmp(opts.label_type, 'original')
-  labels = imdb.images.label;
-elseif strcmp(opts.label_type, 'vetted')
-  labels = imdb.images.vetted_label > 0;
-else
-  error('Cannot recognize the label type: %s', opts.label_type);
+switch opts.label_type
+  case 'original'
+    labels = imdb.images.label;
+  case 'vetted'
+    labels = imdb.images.vetted_label > 0;
+  case 'latent'
+    labels = imdb.images.label;
+  otherwise
+    error('Cannot recognize the label type: %s', opts.label_type);
 end
 
 if isfield(imdb, 'tags_to_train')

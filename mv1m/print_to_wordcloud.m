@@ -56,6 +56,10 @@ storage_path = 'aria_train';
 resdb = load('/mnt/large/pxnguyen/cnn_exp/aria_self_learn/resdb.mat');
 storage_path = 'aria_train_all';
 
+%%
+resdb = load('/mnt/large/pxnguyen/cnn_exp/aria_ub2/resdb-iter-186000.mat');
+storage_path = 'aria_ub2';
+
 %% make the imdb with the top-8
 aria_top8_imdb_path = '/mnt/large/pxnguyen/cnn_exp/aria_top8/aria_top8_imdb.mat';
 aria_top8_imdb = aria_imdb;

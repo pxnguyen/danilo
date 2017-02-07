@@ -177,7 +177,7 @@ switch lower(opts.loss)
       instanceWeights = cast(c(:,:,1,:) ~= 0) ;
     end
 
-  case {'binaryerror', 'binarylog', 'logistic', 'hinge', 'hit@k'}
+  case {'binaryerror', 'binarylog', 'logistic', 'logistic2', 'hinge', 'hit@k'}
 
     % there must be one categorical label per prediction scalar
     assert(labelSize(3) == inputSize(3)) ;
@@ -256,6 +256,13 @@ if nargin <= 2 || isempty(dzdy)
       a = -c.*x ;
       b = max(0, a) ;
       t = b + log(exp(-b) + exp(a-b)) ;
+    case 'logistic2'
+      a = sigmoid(x);
+      t = -(c.*log(a+1e-8) + (1-c).*log(1-a+1e-8));
+      %t = log(1 + exp(-c.*X)) ;
+      %a = -c.*x ;
+      %b = max(0, a) ;
+      %t = b + log(exp(-b) + exp(a-b)) ;
     case 'hinge'
       t = max(0, 1 - c.*x) ;
   end
@@ -300,10 +307,18 @@ else
       % t = exp(-Y.*X) / (1 + exp(-Y.*X)) .* (-Y)
       % t = 1 / (1 + exp(Y.*X)) .* (-Y)
       y = - dzdy .* c ./ (1 + exp(c.*x)) ;
+    case 'logistic2'
+      a = sigmoid(x);
+      y = dzdy .* (a - c);
     case 'hinge'
       y = - dzdy .* c .* (c.*x < 1) ;
   end
 end
+
+% --------------------------------------------------------------------
+function z = sigmoid(x)
+% --------------------------------------------------------------------
+z = 1.0 ./ ( 1.0 + exp(-x) );
 
 % --------------------------------------------------------------------
 function y = zerosLike(x)
