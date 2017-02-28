@@ -1,4 +1,4 @@
-function run_eval_language(exp_name)
+function run_eval_language(exp_name, mode)
 run('matconvnet/matlab/vl_setupnn.m');
 addpath(genpath('MexConv3D'))
 opts = struct();
@@ -22,18 +22,22 @@ opts.imdbPath = fullfile(opts.expDir, sprintf('%s_imdb.mat', exp_name));
 % find the latest trained checkpoint
 [epoch, iter] = findLastCheckpoint(opts.expDir);
 opts.resdb_path = fullfile(opts.expDir,...
-  sprintf('resdb-iter-%d.mat', iter));
+  sprintf('resdb-iter-%d-%s.mat', iter, mode));
 opts.model_path = fullfile(opts.expDir,...
   sprintf('net-epoch-%d-iter-%d.mat', epoch, iter));
 
 opts.train = struct();
 opts.train.gpus = [1];
 opts.layers_to_store = {'fc1000'};
+opts.set_to_run = mode;
 
 switch exp_name
   case 'aria_cotags'
     opts.features = {'cotags'};
-    opts.set_to_run = 'train';
+    opts.layers_to_store = {'fc1000'};
+  case 'aria_trainB'
+    opts.features = {'cotags'};
+    opts.layers_to_store = {'fc1'};
   case 'desc'
 end
 
@@ -51,11 +55,14 @@ fprintf('Loading resdb\n');
 tic; resdb = load(opts.resdb_path); toc;
 
 % fprintf('Computing APs...\n');
-% info.AP_tag = compute_average_precision(resdb.fc1000.outputs, resdb.gts);
+%info.AP_tag = compute_average_precision(resdb.fc1000.outputs, resdb.gts);
 
 % compute the prec@K
-% fprintf('Computing prec@K...\n');
-% info.prec_at_k = compute_precision_at_k(resdb.fc1000.outputs, resdb.gts);
+fprintf('Computing prec@K...\n');
+layer = opts.layers_to_store{end};
+gts = full(imdb.images.vetted_label(imdb.tags_to_train, resdb.video_ids)) > 0;
+pred = resdb.(layer).outputs(imdb.tags_to_train, :);
+info.prec_at_k = compute_precision_at_k(pred, gts, 'k', 32);
 
 info_path = fullfile(opts.expDir, 'info.mat');
 fprintf('saving the AP info to %s\n', info_path);

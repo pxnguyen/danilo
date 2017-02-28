@@ -127,6 +127,15 @@ switch exp_name
     opts.only_fc = true;
     opts.loss_type = 'logistic';
     opts.label_type = 'vetted';
+  case 'aria_deeper_nobn'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [...
+      1e-5 * ones(1, 50000), 5e-5 * ones(1, 50000),...
+      1e-6 * ones(1, 50000), 5e-6 * ones(1, 50000),...
+      1e-7 * ones(1, 50000), 5e-7 * ones(1, 50000),];
+    opts.label_type = 'original';
+    opts.loss_type = 'logistic';
   case 'aria_top8'
     % self-learn the top8 ventured videos for all tags.
     opts.iter_per_epoch = 100000;

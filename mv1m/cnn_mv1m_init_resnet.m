@@ -15,6 +15,7 @@ opts.learning_schedule = [1e-5 * ones(1, 80000), 1e-6*ones(1, 80000), 1e-7*ones(
 opts.batch_size = 16;
 opts.num_frame = 5;
 opts.only_fc = true;
+opts.stop_gradient_location = 'res5b';
 opts.dropout_ratio = 0.0;
 opts.loss_type = 'logistic';
 opts.add_fc128 = false;
@@ -51,11 +52,6 @@ net.meta.trainOpts.weightDecay = 0.0001 ;
 %                                                           Removing layers
 % -------------------------------------------------------------------------
 
-% remove 'prob'
-net.removeLayer(net.layers(end).name);
-[h, w, in, out] = size(zeros(net.layers(end).block.size));
-out = numel(net.meta.classes.name);
-
 % cross-modality pretraining
 %param_index = net.getParamIndex('conv1_filter')
 %conv1_weights = net.params(param_index).value;
@@ -64,49 +60,63 @@ out = numel(net.meta.classes.name);
 %net.params(param_index).value = values;
 %net.layers(1).block.size[3] = opts.num_flow * 2; %TODO(phucng): change 20 to num_flow
 
-% remove 'fc1000'
-fc1000_name = net.layers(end).name; % fc1000
-net.removeLayer(net.layers(end).name);
+% remove 'prob'
+net.removeLayer('prob');
 
-prev_name = net.layers(end).name;
-if opts.only_fc
-  % add the stop gradient layer
-  stop_gradient_block = dagnn.StopGradient();
-  net.addLayer('stop_gradient', stop_gradient_block,...
-   prev_name, 'stop_gradient');
-  prev_name = 'stop_gradient';
-
-  for iparams = 1:length(net.params)
+% turn all the batch normalization off
+for iparams = 1:length(net.params)
+  if strfind(net.params(iparams).name, 'bn')
     net.params(iparams).learningRate = 0;
     net.params(iparams).weightDecay = 0;
   end
 end
 
-% add the fc128 layer
-if opts.add_fc128
-  fc_block = dagnn.Conv('size', [h, w, in, 128], 'hasBias', true, ...
-    'stride', 1, 'pad', 0);
-  net.addLayer('fc128', fc_block, ...
-    prev_name, 'fc128',...
-    {'fc128_f', 'fc128_b'});
-
-  % init weights
-  p = net.getParamIndex(net.layers(end).params) ;
-  params = net.layers(end).block.initParams() ;
-  params = cellfun(@gather, params, 'UniformOutput', false) ;
-  [net.params(p).value] = deal(params{:}) ;
-
-  prev_name = 'fc128';
-  in = 128;
+% add the stop gradient block
+stop_gradient_block = dagnn.StopGradient();
+layer_before_stop_index = find(arrayfun(@(x) strcmp(x.name, opts.stop_gradient_location), net.layers)) ;
+layer_before_stop = net.layers(layer_before_stop_index);
+outputs = layer_before_stop.outputs;
+if numel(outputs)>1; error('This case is not handled\n'); end;
+bstop_output = outputs{1};
+for i=1:layer_before_stop_index
+  params = net.layers(i).params;
+  for i_param=1:numel(params)
+    param_name = params{i_param};
+    param_index = find(arrayfun(@(x) strcmp(x.name, param_name), net.params)) ;
+    net.params(param_index).learningRate = 0;
+    net.params(param_index).weightDecay = 0;
+  end
 end
+
+net.addLayerAt(layer_before_stop_index, 'stop_gradient', stop_gradient_block,...
+ opts.stop_gradient_location, 'stop_gradient');
+
+% find the layer with input matches bstop_output
+for i_layer=1:numel(net.layers)
+  if strcmp(net.layers(i_layer).inputs{1}, bstop_output) &&...
+      ~strcmp(net.layers(i_layer).name, 'stop_gradient')
+    if numel(net.layers(i_layer).inputs) > 1
+      error('This case is not handled\n');
+    end
+    net.layers(i_layer).inputs{1} = 'stop_gradient';
+  end
+end
+
+% remove 'prob'
+index_fc1000 = find(arrayfun(@(x) strcmp(x.name, 'fc1000'), net.layers));
+fc1k_tobe_removed = net.layers(index_fc1000);
+[h, w, in, ~] = size(zeros(net.layers(index_fc1000).block.size));
+net.removeLayer(net.layers(index_fc1000).name);
+out = numel(net.meta.classes.name);
+prev_layer = fc1k_tobe_removed.inputs{1};
 
 % re-add the fc layer
 fc_block = dagnn.Conv('size', [h, w, in, out], 'hasBias', true, ...
   'stride', 1, 'pad', 0);
-net.addLayer(fc1000_name, fc_block, ...
-  prev_name, fc1000_name,...
-  {[fc1000_name '_f'], [fc1000_name '_b']});
-
+net.addLayer('fc1000', fc_block, ...
+  prev_layer, 'fc1000',...
+  {['fc1000_f'], ['fc1000_b']});
+% init the new layer params
 p = net.getParamIndex(net.layers(end).params) ;
 params = net.layers(end).block.initParams() ;
 params = cellfun(@gather, params, 'UniformOutput', false) ;
@@ -137,11 +147,12 @@ block.pad = [net.layers(i_pool5).block.pad 0,0];
 block.stride = [net.layers(i_pool5).block.stride 2];
 
 net.addLayerAt(i_pool5, 'pool3D5', block, ...
-               [net.layers(i_pool5).inputs], ...
-                 [net.layers(i_pool5).outputs]) ;
+  [net.layers(i_pool5).inputs], ...
+  [net.layers(i_pool5).outputs]) ;
 net.removeLayer('pool5') ;
 
-lName = net.layers(end).name;
+index_fc1000 = find(arrayfun(@(x) strcmp(x.name, 'fc1000'), net.layers));
+lName = net.layers(index_fc1000).name;
 
 switch opts.loss_type
   case 'logistic'
@@ -181,3 +192,30 @@ net.addLayer('sigmoid', dagnn.Sigmoid(), lName, 'sigmoid');
 net.renameVar(net.vars(1).name, 'input');
 
 net.rebuild()
+
+% if opts.only_fc
+%   % add the stop gradient layer
+% 
+%   for iparams = 1:length(net.params)
+%     net.params(iparams).learningRate = 0;
+%     net.params(iparams).weightDecay = 0;
+%   end
+% end
+
+% add the fc128 layer
+% if opts.add_fc128
+%   fc_block = dagnn.Conv('size', [h, w, in, 128], 'hasBias', true, ...
+%     'stride', 1, 'pad', 0);
+%   net.addLayer('fc128', fc_block, ...
+%     prev_name, 'fc128',...
+%     {'fc128_f', 'fc128_b'});
+% 
+%   % init weights
+%   p = net.getParamIndex(net.layers(end).params) ;
+%   params = net.layers(end).block.initParams() ;
+%   params = cellfun(@gather, params, 'UniformOutput', false) ;
+%   [net.params(p).value] = deal(params{:}) ;
+% 
+%   prev_name = 'fc128';
+%   in = 128;
+% end
