@@ -33,6 +33,8 @@ else
   tags_to_train_indeces = 1:num_tag;
 end
 
+opts.num_class_to_query = min(opts.num_class_to_query, num_tag);
+
 % multiple = 4; % this helps speed up the selection process
 rand_order = randperm(num_tag);
 rand_order = rand_order(1:opts.num_class_to_query);
