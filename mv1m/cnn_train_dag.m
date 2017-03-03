@@ -37,7 +37,6 @@ opts.num_eval_per_epoch = 8000;
 opts.label_type = 'original';
 opts.loss_type = 'logistic';
 opts = vl_argparse(opts, varargin) ;
-opts
 
 if ~exist(opts.expDir, 'dir'), mkdir(opts.expDir) ; end
 if isempty(opts.train), opts.train = find(imdb.images.set==1) ; end
@@ -107,14 +106,19 @@ while ~done
     epoch = epoch + 1;
     val_random_order = randperm(numel(opts.val));
     prepareGPUs(opts, true) ;
+  else
+    if current_iter > numel(opts.learningRate)
+      done = true;
+      break;
+    end
   end
 
   % Train for one epoch.
   params = opts ;
   params.epoch = epoch ;
-  params.learningRate = opts.learningRate(min(current_iter+1, numel(opts.learningRate))) ;
+  params.learningRate = opts.learningRate(min(current_iter+1,...
+    numel(opts.learningRate))) ;
 
-  %TODO(phuc): need to do the class balancing here
   fprintf('Shuffling and balancing the data...\n');
   [train_order, imdb, augmented_labels] = select_training_examples(...
     iter_per_save*batchSize, imdb,...
@@ -123,7 +127,6 @@ while ~done
 %   train_order = train_order(1:min(iter_per_save*batchSize,...
 %     numel(train_order)));
 %   imdb.images.augmented_labels = imdb.images.label;
-  %params.train = opts.train(train_random_order) ; % shuffle
   params.train = struct();
   params.train.order = train_order ; % shuffle
   params.train.augmented_labels = augmented_labels ; % shuffle
@@ -345,7 +348,7 @@ for t=1:params.batchSize:numel(subset)
     else
       resdb.gts{local_batch_index} = permute(inputs{4}, [3 4 1 2]);
     end
-%     sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name})) ;
+    sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name})) ;
 %     resdb.fc1000.outputs{local_batch_index} =...
 %       gather(permute(net.vars(sel).value, [3 4 1 2]));
     local_batch_index = local_batch_index  + 1;

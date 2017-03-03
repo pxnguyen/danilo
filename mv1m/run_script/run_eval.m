@@ -53,30 +53,40 @@ fprintf('Loading resdb\n');
 tic; resdb = load(opts.resdb_path); toc;
 
 fprintf('Computing APs...\n');
-gts = full(imdb.images.label(:, resdb.video_ids));
-info.AP_tag = compute_average_precision(resdb.fc1000.outputs, gts);
+prob = resdb.fc1000.outputs(imdb.selected, :);
+gts = full(imdb.images.label(imdb.selected, resdb.video_ids));
+% info.AP_tag = compute_average_precision(prob, gts);
 
 % compute the prec@k
 fprintf('Computing prec@K...\n');
-info.prec_at_8 = compute_precision_at_k(resdb.fc1000.outputs, gts, 'k', 8);
-info.prec_at_16 = compute_precision_at_k(resdb.fc1000.outputs, gts, 'k', 16);
-info.prec_at_32 = compute_precision_at_k(resdb.fc1000.outputs, gts, 'k', 32);
+% info.prec_at_8 = compute_precision_at_k(prob, gts, 'k', 8);
+% info.prec_at_16 = compute_precision_at_k(prob, gts, 'k', 16);
+info.prec_at_32 = compute_precision_at_k(prob, gts, 'k', 32);
 
 % computing the adjusted prec@k
-if isfield(imdb.images, 'vetted_label')
-  fprintf('Computing adjusted prec@K...\n');
-  vetted_gts = full(imdb.images.vetted_label(:, resdb.video_ids));
-  info.adjusted_prec_at_8 = compute_precision_at_k(resdb.fc1000.outputs,...
-    vetted_gts, 'k', 8);
-  info.adjusted_prec_at_16 = compute_precision_at_k(resdb.fc1000.outputs,...
-    vetted_gts, 'k', 16);
-  info.adjusted_prec_at_32 = compute_precision_at_k(resdb.fc1000.outputs,...
-    vetted_gts, 'k', 32);
-end
+vetted_labels = load_vetted_labels();
+fprintf('Computing adjusted prec@K...\n');
+vetted_labels = vetted_labels(imdb.selected, resdb.video_ids);
+vetted_gts = gts;
+vetted_gts(vetted_labels==2) = 1;
+vetted_gts(vetted_labels==-2) = 0;
+% info.adjusted_prec_at_8 = compute_precision_at_k(prob,...
+%   vetted_gts, 'k', 8);
+% info.adjusted_prec_at_16 = compute_precision_at_k(prob,...
+%   vetted_gts, 'k', 16);
+info.adjusted_prec_at_32 = compute_precision_at_k(prob,...
+  vetted_gts, 'k', 32);
 
 info_path = fullfile(opts.expDir, 'info.mat');
 fprintf('saving the AP info to %s\n', info_path);
 save(info_path, '-struct', 'info');
+
+function vetted_labels = load_vetted_labels()
+vetted_labels_train = load('/home/phuc/Research/yaromil/vetted_labels_train.mat');
+vetted_labels_train = vetted_labels_train.vetted_labels;
+vetted_labels_test = load('/home/phuc/Research/yaromil/vetted_labels_test.mat');
+vetted_labels_test = vetted_labels_test.vetted_labels;
+vetted_labels = [vetted_labels_train vetted_labels_test];
 
 % -------------------------------------------------------------------------
 function [epoch, iter] = findLastCheckpoint(modelDir)

@@ -21,6 +21,10 @@ opts.loss_type = 'logistic';
 opts.add_fc128 = false;
 opts = vl_argparse(opts, varargin) ;
 
+if opts.only_fc
+  opts.stop_gradient_location = 'pool3D5';
+end
+
 net = dagnn.DagNN.loadobj(load(opts.pretrained_path));
 
 % -------------------------------------------------------------------------
@@ -71,6 +75,74 @@ for iparams = 1:length(net.params)
   end
 end
 
+% add the dropout layer
+if opts.dropout_ratio > 0
+  index_res5c_relu = find(arrayfun(@(x) strcmp(x.name,'res5c_relu'), net.layers)) ;
+  dropout_block = dagnn.DropOut() ;
+  dropout_block.rate = opts.dropout_ratio ;
+  dropout_layer_name = ['drop_' net.layers(index_res5c_relu).name];
+
+  net.addLayerAt(index_res5c_relu, dropout_layer_name,...
+    dropout_block, ...
+    net.layers(index_res5c_relu).outputs, ...
+    dropout_layer_name) ;
+
+  i_pool5 = find(~cellfun('isempty', strfind({net.layers.name}, 'pool5')));
+  net.layers(i_pool5).inputs{1} = dropout_layer_name;
+end
+
+% adding the 3D pooling
+i_pool5 = find(~cellfun('isempty', strfind({net.layers.name}, 'pool5')));
+block = dagnn.Pooling3D() ;
+block.method = 'max' ;
+block.poolSize = [net.layers(i_pool5).block.poolSize opts.num_frame];
+block.pad = [net.layers(i_pool5).block.pad 0,0];
+block.stride = [net.layers(i_pool5).block.stride 2];
+
+net.addLayerAt(i_pool5, 'pool3D5', block, ...
+  [net.layers(i_pool5).inputs], ...
+  'pool3D5') ;
+net.removeLayer('pool5') ;
+
+% remove 'prob'
+index_fc1000 = find(arrayfun(@(x) strcmp(x.name, 'fc1000'), net.layers));
+fc1k_tobe_removed = net.layers(index_fc1000);
+[h, w, in, ~] = size(zeros(net.layers(index_fc1000).block.size));
+net.removeLayer(net.layers(index_fc1000).name);
+out = numel(net.meta.classes.name);
+% prev_layer = fc1k_tobe_removed.inputs{1};
+
+% re-add the fc layer
+fc_block = dagnn.Conv('size', [h, w, in, out], 'hasBias', true, ...
+  'stride', 1, 'pad', 0);
+net.addLayer('fc1000', fc_block, ...
+  'pool3D5', 'fc1000',...
+  {['fc1000_f'], ['fc1000_b']});
+% init the new layer params
+p = net.getParamIndex(net.layers(end).params) ;
+params = net.layers(end).block.initParams() ;
+params = cellfun(@gather, params, 'UniformOutput', false) ;
+[net.params(p).value] = deal(params{:}) ;
+
+index_fc1000 = find(arrayfun(@(x) strcmp(x.name, 'fc1000'), net.layers));
+lName = net.layers(index_fc1000).name;
+
+switch opts.loss_type
+  case 'logistic'
+    net.addLayer('loss', dagnn.Loss('loss', 'logistic'), {lName, 'label'}, 'objective');
+  case 'logistic2'
+    net.addLayer('loss', dagnn.Loss('loss', 'logistic2'), {lName, 'label'}, 'objective');
+  case 'softmax'
+    net.addLayer('loss', dagnn.Loss('loss', 'softmaxlog'), {lName, 'label'}, 'objective') ;
+  case 'L2'
+    net.addLayer('loss', dagnn.Loss('loss', 'softmaxlog'), {lName, 'label'}, 'objective') ;
+  otherwise
+      error('Unrecognized loss type: %s', opts.loss_type);
+end
+
+% performance metrics
+net.addLayer('sigmoid', dagnn.Sigmoid(), lName, 'sigmoid');
+
 % add the stop gradient block
 stop_gradient_block = dagnn.StopGradient();
 layer_before_stop_index = find(arrayfun(@(x) strcmp(x.name, opts.stop_gradient_location), net.layers)) ;
@@ -101,74 +173,6 @@ for i_layer=1:numel(net.layers)
     net.layers(i_layer).inputs{1} = 'stop_gradient';
   end
 end
-
-% remove 'prob'
-index_fc1000 = find(arrayfun(@(x) strcmp(x.name, 'fc1000'), net.layers));
-fc1k_tobe_removed = net.layers(index_fc1000);
-[h, w, in, ~] = size(zeros(net.layers(index_fc1000).block.size));
-net.removeLayer(net.layers(index_fc1000).name);
-out = numel(net.meta.classes.name);
-prev_layer = fc1k_tobe_removed.inputs{1};
-
-% re-add the fc layer
-fc_block = dagnn.Conv('size', [h, w, in, out], 'hasBias', true, ...
-  'stride', 1, 'pad', 0);
-net.addLayer('fc1000', fc_block, ...
-  prev_layer, 'fc1000',...
-  {['fc1000_f'], ['fc1000_b']});
-% init the new layer params
-p = net.getParamIndex(net.layers(end).params) ;
-params = net.layers(end).block.initParams() ;
-params = cellfun(@gather, params, 'UniformOutput', false) ;
-[net.params(p).value] = deal(params{:}) ;
-
-% add the dropout layer
-if opts.dropout_ratio > 0
-  index_res5c_relu = find(arrayfun(@(x) strcmp(x.name,'res5c_relu'), net.layers)) ;
-  dropout_block = dagnn.DropOut() ;
-  dropout_block.rate = opts.dropout_ratio ;
-  dropout_layer_name = ['drop_' net.layers(index_res5c_relu).name];
-
-  net.addLayerAt(index_res5c_relu, dropout_layer_name,...
-    dropout_block, ...
-    net.layers(index_res5c_relu).outputs, ...
-    dropout_layer_name) ;
-
-  i_pool5 = find(~cellfun('isempty', strfind({net.layers.name}, 'pool5')));
-  net.layers(i_pool5).inputs{1} = dropout_layer_name;
-end
-
-% adding the 3D pooling
-i_pool5 = find(~cellfun('isempty', strfind({net.layers.name}, 'pool5')));
-block = dagnn.Pooling3D() ;
-block.method = 'max' ;
-block.poolSize = [net.layers(i_pool5).block.poolSize opts.num_frame];
-block.pad = [net.layers(i_pool5).block.pad 0,0];
-block.stride = [net.layers(i_pool5).block.stride 2];
-
-net.addLayerAt(i_pool5, 'pool3D5', block, ...
-  [net.layers(i_pool5).inputs], ...
-  [net.layers(i_pool5).outputs]) ;
-net.removeLayer('pool5') ;
-
-index_fc1000 = find(arrayfun(@(x) strcmp(x.name, 'fc1000'), net.layers));
-lName = net.layers(index_fc1000).name;
-
-switch opts.loss_type
-  case 'logistic'
-    net.addLayer('loss', dagnn.Loss('loss', 'logistic'), {lName, 'label'}, 'objective');
-  case 'logistic2'
-    net.addLayer('loss', dagnn.Loss('loss', 'logistic2'), {lName, 'label'}, 'objective');
-  case 'softmax'
-    net.addLayer('loss', dagnn.Loss('loss', 'softmaxlog'), {lName, 'label'}, 'objective') ;
-  case 'L2'
-    net.addLayer('loss', dagnn.Loss('loss', 'softmaxlog'), {lName, 'label'}, 'objective') ;
-  otherwise
-      error('Unrecognized loss type: %s', opts.loss_type);
-end
-
-% performance metrics
-net.addLayer('sigmoid', dagnn.Sigmoid(), lName, 'sigmoid');
 % net.addLayer('error',...
 %   dagnn.Loss('loss', 'hit@k', 'opts', {'topK', 1}),...
 %   {'sigmoid', 'label'}, 'hit_at_1') ;

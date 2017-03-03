@@ -1,15 +1,18 @@
-function write_out_prediction(exp_name, resdb)
+function write_out_prediction(exp_name, resdb, varargin)
 % write out the top k predictions for an experiment
 % Args
 %   exp_name: the experiment name that was runned
 opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/', exp_name);
 opts.imdbPath = fullfile(opts.expDir, sprintf('%s_imdb.mat', exp_name));
 opts.k = 64;
+opts.mode = 'per_video';
+
 [epoch, iter] = findLastCheckpoint(opts.expDir);
 opts.resdb_path = fullfile(opts.expDir,...
   sprintf('resdb-iter-%d.mat', iter));
 opts.model_path = fullfile(opts.expDir,...
   sprintf('net-epoch-%d-iter-%d.mat', epoch, iter));
+opts = vl_argparse(opts, varargin);
 imdb = load(opts.imdbPath);
 
 fid = fopen('active_testing/tags.list');
@@ -25,10 +28,14 @@ tag_indeces = find(tag_indeces_bin);
 
 fprintf('Loading imdb\n');
 tic; imdb = load(opts.imdbPath); toc;
-print_out_perimage(resdb, imdb, tag_indeces, exp_name)
+if strcmp(opts.mode, 'per-video')
+  print_out_perimage(resdb, imdb, exp_name)
+elseif strcmp(opts.mode, 'per-tag')
+  print_out_pertag(resdb, imdb, opts, exp_name)
+end
 
 % -------------------------------------------------------------------------
-function print_out_perimage(resdb, imdb, tag_indeces, exp_name)
+function print_out_perimage(resdb, imdb, opts, exp_name)
 % -------------------------------------------------------------------------
 test_images = resdb.video_ids;
 num_videos = numel(test_images);
@@ -57,10 +64,10 @@ for index = 1:num_videos
 end
 
 % -------------------------------------------------------------------------
-function [epoch, iter] = print_out_pertag(modelDir)
+function print_out_pertag(resdb, imdb, opts, exp_name)
 % -------------------------------------------------------------------------
 test_images = resdb.video_ids;
-prob = resdb.fc1000.outputs;
+prob = vl_nnsigmoid(resdb.fc1000.outputs);
 selected_indeces = find(imdb.selected);
 for index = 1:length(selected_indeces)
   selected_index = selected_indeces(index);
@@ -68,10 +75,9 @@ for index = 1:length(selected_indeces)
   
   fprintf('working on %s\n', tag_name);
   tag_prob = prob(selected_index, :); % videos do not have this tag
-  [~, order] = sort(tag_prob, 'descend');
+  [sorted_prob, order] = sort(tag_prob, 'descend');
   dir_name = fullfile('prediction_videos_dir', exp_name);
-  if ~exist(dir_name, 'dir')
-    mkdir(dir_name);
+  if ~exist(dir_name, 'dir'); mkdir(dir_name);
   end
   
   file_path = fullfile(dir_name,...
@@ -81,7 +87,7 @@ for index = 1:length(selected_indeces)
   
   for image_index = 1:length(image_list)
     [~, file, ~] = fileparts(image_list{image_index});
-    fprintf(fid, '%s\n', file);
+    fprintf(fid, '%s,%0.2f\n', file, sorted_prob(image_index));
   end
   fclose(fid);
 end
