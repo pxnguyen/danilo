@@ -1,4 +1,4 @@
-function active_testing_exp
+  function active_testing_exp
 gt = [1 0 0 1 0];
 pred = [0.5 0.1 0.2 0.4 0.9];
 adjusted = [0.7 0.02 0.1 0.5 0.4];

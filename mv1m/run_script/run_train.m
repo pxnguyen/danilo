@@ -147,6 +147,17 @@ switch exp_name
     opts.label_type = 'original';
     opts.loss_type = 'logistic2';
     opts.only_fc = true;
+  case 'aria_game_75'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.num_eval_per_epoch = 7500;
+    opts.learning_schedule = [...
+      5e-5 * ones(1, 50000), 5e-5 * ones(1, 50000),...
+      1e-6 * ones(1, 50000), 5e-6 * ones(1, 50000),...
+      1e-7 * ones(1, 50000), 5e-7 * ones(1, 50000),];
+    opts.label_type = 'original';
+    opts.loss_type = 'logistic2';
+    opts.only_fc = true;
   case 'aria_top8'
     % self-learn the top8 ventured videos for all tags.
     opts.iter_per_epoch = 100000;

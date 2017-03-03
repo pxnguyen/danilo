@@ -57,6 +57,7 @@ while res.info(iter).current_budget <= total_budget - batch_budget
     res.info(iter).to_use_vetted, vetted_labels, observed_label, prob, tag_indeces, imdb, opts);
   res.info(iter).precisions = precisions;
   res.info(iter).delta = mean(abs(precisions(:) - true_precisions(:)));
+  fprintf('budget: %d delta %0.2f\n', res.info(iter).current_budget, mean(res.info(iter).delta));
   
   res.info(iter+1).to_use_vetted = new_vetted_set;
   res.info(iter+1).current_budget = res.info(iter).current_budget + batch_budget;
@@ -67,7 +68,7 @@ while res.info(iter).current_budget <= total_budget - batch_budget
     res.info(iter+1).to_use_vetted, resdb, opts);
   precisions_all{iter} = precisions;
   iter = iter +1;
-  save('active_testing/res_adaptive.mat', '-struct', 'res');
+  save(save_file_name, '-struct', 'res');
 end
 
 function [to_use_vetted, precisions] = query_least_confident(net_budget,...
