@@ -43,6 +43,12 @@ if exist(fullfile(opts.expDir, 'latent_labels.mat'), 'file')
   imdb.latent_labels = latent_labels;
 end
 
+if exist(fullfile(opts.expDir, 'fc1000.mat'), 'file')
+  fprintf('Loading predictions...\n');
+  lstruct = load(fullfile(opts.expDir, 'fc1000.mat'));
+  imdb.images.fc1000 = lstruct.fc1000;
+end
+
 % -------------------------------------------------------------------------
 %                                                             Prepare model
 % -------------------------------------------------------------------------
@@ -79,7 +85,7 @@ end
   'iter_per_save', opts.iter_per_save,...
   'prefetch', true, ...
   'nesterovUpdate', true, ...
-  'derOutputs', {'loss1', 1, 'loss2', 0.5},...
+  'derOutputs', {'loss1', 1},...
   net.meta.trainOpts, ...
   opts.train) ;
 
@@ -94,7 +100,14 @@ bopts.test = struct('useGpu', useGpu);
 % Copy the parameters for data augmentation
 bopts.train = bopts.test ;
 bopts.features = opts.features;
-fn = @(x, y) getBatch(bopts, useGpu, lower(opts.networkType), x, y);
+switch opts.features{1}
+  case 'rescore'
+    fn = @(x, y) get_batch_rescore(bopts, useGpu, lower(opts.networkType), x, y);
+  case 'cotags'
+    fn = @(x, y) getBatch(bopts, useGpu, lower(opts.networkType), x, y);
+  otherwise
+    error('Unrecognized feature %s', opts.features{1});
+end
 
 % -------------------------------------------------------------------------
 function varargout = getBatch(opts, useGpu, networkType, imdb, batch)
@@ -169,6 +182,42 @@ for feature_index = 1:numel(opts.features)
       varargout{1} = {'corrupted_input', corrupted_input,...
         'observed_input', observed_input,...
         'latent_label', observed_input};
+    end
+  end
+end
+
+% -------------------------------------------------------------------------
+function varargout = get_batch_rescore(opts, useGpu, networkType, imdb, batch)
+% -------------------------------------------------------------------------
+images = strcat([imdb.imageDir filesep], imdb.images.name(batch)) ;
+if isempty(images); return; end;
+if ~isempty(batch) && imdb.images.set(batch(1)) == 1
+  phase = 'train' ;
+else
+  phase = 'test' ;
+end
+
+for feature_index = 1:numel(opts.features)
+  feature = opts.features{feature_index};
+  if strcmp(feature, 'rescore')
+    observed_labels = full(imdb.images.label(imdb.tags_to_train, batch));
+    preds = full(vl_nnsigmoid(imdb.images.fc1000(:, batch)));
+    inputs = cat(1, observed_labels, preds);
+    inputs = permute(inputs, [3 4 1 2]);
+    inputs = gpuArray(single(inputs));
+    
+    combined_labels = full(imdb.images.combined_label(imdb.tags_to_train, batch));
+    
+    combined_labels = permute(combined_labels, [3 4 1 2]);
+    combined_labels = gpuArray(single(combined_labels));
+    
+    % loading the latent labels
+    if strcmp(phase, 'train')
+      varargout{1} = {'input', inputs,...
+        'labels', combined_labels};
+    else
+      varargout{1} = {'input', inputs,...
+        'labels', combined_labels};
     end
   end
 end
