@@ -36,7 +36,7 @@ opts.tag_set_1000 = tag_set_1000;
 opts.tag_set_4000 = imdb.classes.name;
 opts.imdb = imdb;
 
-% load the vetted labels
+% vetted labels
 vetted_labels = vetted_labels(:, resdb_A.video_ids);
 observed_label = imdb.images.label(:, resdb_A.video_ids);
 label_set = struct();
