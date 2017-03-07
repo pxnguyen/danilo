@@ -89,7 +89,7 @@ while ~done
   
   precision_B = get_precision(estimator_B, res.info(iter+1).to_use_vetted,...
     label_set, prob_B, opts);
-  precision_A = get_precision(estimator_A, res.info(1).to_use_vetted,...
+  precision_A = get_precision(estimator_A, res.info(iter+1).to_use_vetted,...
     label_set, prob_A, opts);
   res.info(iter+1).precision_B = precision_B;
   res.info(iter+1).precision_A = precision_A;
@@ -170,6 +170,7 @@ end
 lookup_indeces = cat(1, lookup_indeces{:});
 certainty_all = cat(2, certainty_all{:});
 assert(size(lookup_indeces, 1) == size(certainty_all,2));
+% todo: remove duplicats here
 
 [~, order] = sort(abs(certainty_all - 0.5));
 to_take = min(opts.k_budget_batch*75, numel(order));
