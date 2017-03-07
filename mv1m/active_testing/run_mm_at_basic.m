@@ -1,4 +1,4 @@
-function [precisions, delta]=run_mm_at_basic(imdb, model_A, resdb_A, resdb_B, vetted_labels, varargin)
+function run_mm_at_basic(imdb, model_A, resdb_A, resdb_B, vetted_labels, varargin)
 % run multi-model active testing basic version
 % Args:
 %   imdb: the common imdb
@@ -10,11 +10,13 @@ opts.k_budget = 48;
 opts.k_evaluation = 48;
 opts.k_budget_batch = 4;
 opts.search_mode = 'global';
+opts.cnn_exp = '/mnt/large/pxnguyen/cnn_exp/';
+opts.gpu = 1;
 opts = vl_argparse(opts, varargin);
 
 % load the true precision
-lstruct = load('active_testing/true_precision_at_48.mat');
-true_precisions = lstruct.prec;
+% lstruct = load('active_testing/true_precision_at_48.mat');
+% true_precisions = lstruct.prec;
 
 fid = fopen('active_testing/tags.list');
 tag_set_1000 = imdb.classes.name(imdb.selected);
@@ -58,37 +60,33 @@ iter = 1;
 save(save_file_name, '-struct', 'res');
 
 estimator_B = train_cnn(imdb, label_set, vetted_examples, resdb_B, opts);
-%precision_B = get_precision(estimator_B, res.info(1).to_use_vetted,...
-%  label_set, prob_B, opts);
-%precision_A = get_precision(model_A.estimator, res.info(1).to_use_vetted,...
-%  label_set, prob_A, opts);
-%res.info(1).precision_B = precision_B;
-%res.info(1).precision_A = precision_A;
+precision_B = get_precision(estimator_B, res.info(1).to_use_vetted,...
+ label_set, prob_B, opts);
+precision_A = get_precision(model_A.estimator, res.info(1).to_use_vetted,...
+ label_set, prob_A, opts);
+res.info(1).precision_B = precision_B;
+res.info(1).precision_A = precision_A;
 
 % for plotting
 done = false;
 while ~done
-  %res.info(iter).current_budget <= total_budget - batch_budget
-  % query the least confident according to the estimator B
   fprintf('iter %d: querying the least confident examples\n', iter);
   new_vetted_set = query_least_confident(estimator_B,...
     res.info(iter).to_use_vetted, label_set, prob_B, opts);
   
   res.info(iter+1).to_use_vetted = new_vetted_set; % vetting
   res.info(iter+1).current_budget = res.info(iter+1).current_budget + batch_budget;
-%   precision_B = get_precision(estimator_B, res.info(iter+1).to_use_vetted,...
-%     label_set, prob_B, opts);
-%   precision_A = get_precision(model_A.estimator, res.info(1).to_use_vetted,...
-%     label_set, prob_A, opts);
-%   res.info(iter+1).precision_B = precision_B;
-%   res.info(iter+1).precision_A = precision_A;
   
   % retrain the model
   fprintf('iter %d: retraining the estimator\n', iter);
   estimator_B = train_cnn(imdb, label_set,...
     res.info(iter+1).to_use_vetted, resdb_B, opts);
-  % todo: get the delta precision here
-  % todo: retrain the cnn for estimator A here
+  precision_B = get_precision(estimator_B, res.info(iter+1).to_use_vetted,...
+    label_set, prob_B, opts);
+  precision_A = get_precision(model_A.estimator, res.info(1).to_use_vetted,...
+    label_set, prob_A, opts);
+  res.info(iter+1).precision_B = precision_B;
+  res.info(iter+1).precision_A = precision_A;
   
   iter = iter +1;
   save(save_file_name, '-struct', 'res');
@@ -179,7 +177,6 @@ function precisions = get_precision(net, to_use_vetted, label_set,...
 % -------------------------------------------------------------------------
 tag_indeces = opts.tag_indeces;
 tag_indeces_1000 = opts.tag_indeces_1000;
-imdb = opts.imdb;
 vetted_labels = label_set.vetted_labels; % 1Kx160K
 observed_label = label_set.observed_label;
 
@@ -239,7 +236,7 @@ observed_label = label_set.observed_label;
 current_budget = full(sum(sum(to_use_vetted)));
 visible_vetted_labels = double(vetted_labels) .* to_use_vetted;
 exp_name = sprintf('mm_basic_adaptive_%d_%s', current_budget, opts.search_mode);
-path_dir = fullfile('/mnt/large/pxnguyen/cnn_exp/', exp_name);
+path_dir = fullfile(opts.cnn_exp, exp_name);
 if ~exist(path_dir, 'dir'); mkdir(path_dir); end
 if isempty(dir(fullfile(path_dir, 'net-*.mat')))
   new_imdb = imdb;
@@ -270,7 +267,7 @@ if isempty(dir(fullfile(path_dir, 'net-*.mat')))
   fprintf('Done\n');
 
   % run the learner
-  [net,~]=run_train_language(exp_name, 1);
+  [net,~]=run_train_language(exp_name, opts.gpu);
 else
   % load the model
   [epoch, iter] = findLastCheckpoint(path_dir);

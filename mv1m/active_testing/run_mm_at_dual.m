@@ -11,6 +11,8 @@ opts.k_budget = 48;
 opts.k_evaluation = 48;
 opts.k_budget_batch = 4;
 opts.search_mode = 'global';
+opts.cnn_exp = '/mnt/large/pxnguyen/cnn_exp/';
+opts.gpu = 1;
 opts = vl_argparse(opts, varargin);
 
 fid = fopen('active_testing/tags.list');
@@ -295,7 +297,7 @@ if isempty(dir(fullfile(path_dir, 'net-*.mat')))
   fprintf('Done\n');
 
   % run the learner
-  [net,~]=run_train_language(exp_name, 1);
+  [net,~]=run_train_language(exp_name, opts.gpu);
 else
   % load the model
   [epoch, iter] = findLastCheckpoint(path_dir);
