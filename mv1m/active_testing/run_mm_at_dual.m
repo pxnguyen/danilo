@@ -13,10 +13,6 @@ opts.k_budget_batch = 4;
 opts.search_mode = 'global';
 opts = vl_argparse(opts, varargin);
 
-% load the true precision
-lstruct = load('active_testing/true_precision_at_48.mat');
-true_precisions = lstruct.prec;
-
 fid = fopen('active_testing/tags.list');
 tag_set_1000 = imdb.classes.name(imdb.selected);
 tags = textscan(fid, '%s\n'); tags = tags{1};
