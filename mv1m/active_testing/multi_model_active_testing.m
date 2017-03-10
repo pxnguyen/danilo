@@ -36,6 +36,8 @@ switch exp_name
     run_mm_at_basic(aria_imdb, model_A, resdb_A, resdb_B, vetted_labels, 'cnn_exp', cnn_exp, 'gpu', gpu);
   case 'dual'
     run_mm_at_dual(aria_imdb, model_A, resdb_A, resdb_B, vetted_labels, 'cnn_exp', cnn_exp, 'gpu', gpu)
+  case 'joint'
+    run_mm_at_joint(aria_imdb, model_A, resdb_A, resdb_B, vetted_labels, 'cnn_exp', cnn_exp, 'gpu', gpu)
   case 'cotraining'
     error('Have not been implemented\n');
   otherwise

@@ -59,10 +59,11 @@ res.info(1).current_budget = 0;
 iter = 1;
 save(save_file_name, '-struct', 'res');
 
-estimator_B = train_cnn(imdb, label_set, vetted_examples, resdb_B, opts);
+estimator_B = train_cnn(imdb, label_set, vetted_examples, resdb_B, 'modelB', opts);
+estimator_A = model_A.estimator;
 precision_B = get_precision(estimator_B, res.info(1).to_use_vetted,...
  label_set, prob_B, opts);
-precision_A = get_precision(model_A.estimator, res.info(1).to_use_vetted,...
+precision_A = get_precision(estimator_A, res.info(1).to_use_vetted,...
  label_set, prob_A, opts);
 res.info(1).precision_B = precision_B;
 res.info(1).precision_A = precision_A;
@@ -78,12 +79,16 @@ while ~done
   res.info(iter+1).current_budget = res.info(iter+1).current_budget + batch_budget;
   
   % retrain the model
-  fprintf('iter %d: retraining the estimator\n', iter);
+  fprintf('iter %d: retraining estimator B\n', iter);
   estimator_B = train_cnn(imdb, label_set,...
-    res.info(iter+1).to_use_vetted, resdb_B, opts);
+    res.info(iter+1).to_use_vetted, resdb_B, 'modelB', opts);
+  
+  fprintf('iter %d: retraining estimator A\n', iter);
+  estimator_A = train_cnn(imdb, label_set,...
+    res.info(iter+1).to_use_vetted, resdb_A, 'modelA', opts);
   precision_B = get_precision(estimator_B, res.info(iter+1).to_use_vetted,...
     label_set, prob_B, opts);
-  precision_A = get_precision(model_A.estimator, res.info(1).to_use_vetted,...
+  precision_A = get_precision(estimator_A, res.info(1).to_use_vetted,...
     label_set, prob_A, opts);
   res.info(iter+1).precision_B = precision_B;
   res.info(iter+1).precision_A = precision_A;
@@ -229,13 +234,13 @@ for index = 1:num_tag
 end
 
 % -------------------------------------------------------------------------
-function net=train_cnn(imdb, label_set, to_use_vetted, resdb, opts)
+function net=train_cnn(imdb, label_set, to_use_vetted, resdb, model_name, opts)
 % -------------------------------------------------------------------------
 vetted_labels = label_set.vetted_labels;
 observed_label = label_set.observed_label;
 current_budget = full(sum(sum(to_use_vetted)));
 visible_vetted_labels = double(vetted_labels) .* to_use_vetted;
-exp_name = sprintf('mm_basic_adaptive_%d_%s', current_budget, opts.search_mode);
+exp_name = sprintf('mm_basic_adaptive_%d_%s_%s', current_budget, opts.search_mode, model_name);
 path_dir = fullfile(opts.cnn_exp, exp_name);
 if ~exist(path_dir, 'dir'); mkdir(path_dir); end
 if isempty(dir(fullfile(path_dir, 'net-*.mat')))
