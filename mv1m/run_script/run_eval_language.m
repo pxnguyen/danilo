@@ -38,6 +38,9 @@ switch exp_name
   case 'aria_trainB'
     opts.features = {'cotags'};
     opts.layers_to_store = {'fc1'};
+  case 'nuswide'
+    opts.features = {'nuswide-bow'};
+    opts.layers_to_store = {'fc1'};
   case 'desc'
 end
 

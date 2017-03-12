@@ -1,8 +1,5 @@
 info = load('/mnt/large/pxnguyen/cnn_exp/aria/info.mat');
 aria_imdb = load('/mnt/large/pxnguyen/cnn_exp/aria/aria_imdb.mat');
-selected_AP = info.AP_tag(aria_imdb.selected);
-selected_tags = aria_imdb.classes.name(aria_imdb.selected);
-[~, sorted_order] = sort(selected_AP, 'descend');
 vetted_labels_train = load('/home/phuc/Research/yaromil/vetted_labels_train.mat');
 vetted_labels_train = vetted_labels_train.vetted_labels;
 vetted_labels_test = load('/home/phuc/Research/yaromil/vetted_labels_test.mat');

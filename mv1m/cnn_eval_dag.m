@@ -36,10 +36,11 @@ prepareGPUs(opts, true) ;
 
 [net, state, ~] = loadState(opts.model_path) ;
 
-val_with_relevant_labels = sum(imdb.images.label(:, opts.val), 1) > 0;
-opts.val = opts.val(val_with_relevant_labels);
+% val_with_relevant_labels = sum(imdb.images.label(:, opts.val), 1) > 0;
+% opts.val = opts.val(val_with_relevant_labels);
+% batchSize = opts.batchSize;
+
 val_random_order = 1:numel(opts.val);
-batchSize = opts.batchSize;
 
 % Train for one epoch.
 params = opts ;
