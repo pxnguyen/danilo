@@ -32,6 +32,7 @@ opts.only_fc = false;
 opts.dropout_ratio = 0;
 opts.label_type = 'original';
 opts.loss_type = 'logistic';
+opts.input_type = 'image';
 opts.add_fc128 = false;
 opts.train = struct();
 opts = vl_argparse(opts, varargin) ;
@@ -64,8 +65,14 @@ if exist(imageStatsPath)
 else
   train = find(imdb.images.set == 1) ;
   images = fullfile(imdb.imageDir, imdb.images.name(train(1:100:end))) ;
+  if strcmp(opts.input_type, 'image')
+    images = fullfile(imdb.image_path, imdb.images.name(train(1:100:end))) ;
+  else
+    images = fullfile(imdb.imageDir, imdb.images.name(train(1:100:end))) ;
+  end
   [averageImage, rgbMean, rgbCovariance] = getImageStats(images, ...
     'imageSize', [256 256], ...
+    'input_type', opts.input_type,...
     'numThreads', opts.numFetchThreads, ...
     'frame_dir', opts.frame_dir,...
     'gpus', opts.train.gpus) ;
@@ -91,6 +98,7 @@ if isempty(opts.network)
         'only_fc', opts.only_fc, ...
         'dropout_ratio', opts.dropout_ratio,...
         'loss_type', opts.loss_type,...
+        'input_type', opts.input_type,...
         'add_fc128', opts.add_fc128,...
         'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
@@ -158,6 +166,7 @@ bopts.frame_dir = opts.frame_dir;
 bopts.num_frame = opts.num_frame;
 bopts.label_type = opts.label_type;
 bopts.loss_type = opts.loss_type;
+bopts.input_type = opts.input_type;
 
 % Copy the parameters for data augmentation
 bopts.train = bopts.test ;
@@ -171,7 +180,11 @@ fn = @(x, y) getBatch(bopts, useGpu, lower(opts.networkType), x, y);
 % -------------------------------------------------------------------------
 function varargout = getBatch(opts, useGpu, networkType, imdb, batch)
 % -------------------------------------------------------------------------
-images = strcat([imdb.imageDir filesep], imdb.images.name(batch)) ;
+if strcmp(opts.input_type, 'video')
+  images = strcat([imdb.imageDir filesep], imdb.images.name(batch)) ;
+else
+  images = strcat([imdb.image_path filesep], imdb.images.name(batch)) ;
+end
 if isempty(images)
   return
 end
@@ -182,17 +195,24 @@ else
 end
 video_paths = images;
 all_files = cell(length(video_paths),1);
-for video_index = 1:length(video_paths)
-  files = extract_frames(video_paths{video_index}, 'dest_dir', opts.frame_dir);
-  if strcmp(phase, 'train')
-    frame_selection = randperm(length(files));
-    frame_selection = frame_selection(1:opts.num_frame);
-  elseif strcmp(phase, 'test')
-    frame_selection = floor(linspace(1, length(files), opts.num_frame));
+if strcmp(opts.input_type, 'video')
+  for video_index = 1:length(video_paths)
+    files = extract_frames(video_paths{video_index}, 'dest_dir', opts.frame_dir);
+    if strcmp(phase, 'train')
+      frame_selection = randperm(length(files));
+      frame_selection = frame_selection(1:opts.num_frame);
+    elseif strcmp(phase, 'test')
+      frame_selection = floor(linspace(1, length(files), opts.num_frame));
+    end
+    all_files{video_index} = files(frame_selection);
+    all_files = cat(2, all_files{:});
   end
-  all_files{video_index} = files(frame_selection);
+else
+  for video_index = 1:length(video_paths)
+    video_name = sprintf('%s.jpg', video_paths{video_index});
+    all_files{video_index} = video_name;
+  end
 end
-all_files = cat(2, all_files{:});
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
 if nargout > 0
   switch opts.label_type

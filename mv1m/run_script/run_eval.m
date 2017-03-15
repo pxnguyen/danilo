@@ -36,6 +36,9 @@ switch exp_name
     opts.layers_to_store = {'fc128', 'fc1000'};
   case 'aria'
     opts.layers_to_store = {'pool5', 'fc1000'};
+  case 'nuswide81'
+    opts.layers_to_store = {'fc1000'};
+    opts.input_type = 'image';
   otherwise
 end
 

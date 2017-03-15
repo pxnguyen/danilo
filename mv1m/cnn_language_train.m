@@ -47,6 +47,14 @@ if exist(fullfile(opts.expDir, 'fc1000.mat'), 'file')
   fprintf('Loading predictions...\n');
   lstruct = load(fullfile(opts.expDir, 'fc1000.mat'));
   imdb.images.fc1000 = lstruct.fc1000;
+  input_size = size(imdb.images.fc1000, 1);
+end
+
+if exist(fullfile(opts.expDir, 'BoW_meansub.mat'), 'file')
+  fprintf('Loading predictions...\n');
+  lstruct = load(fullfile(opts.expDir, 'BoW_meansub.mat'));
+  imdb.images.bow = lstruct.bow_meansub;
+  input_size = size(imdb.images.bow, 1);
 end
 
 % -------------------------------------------------------------------------
@@ -63,6 +71,7 @@ if isempty(opts.network)
         'batch_size', opts.batch_size, ...
         'features', opts.features, ...
         'pretrained_path', pretrained_path, ...
+        'input_size', input_size,...
         'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
   end
@@ -105,6 +114,8 @@ switch opts.features{1}
     fn = @(x, y) get_batch_rescore(bopts, useGpu, lower(opts.networkType), x, y);
   case 'cotags'
     fn = @(x, y) getBatch(bopts, useGpu, lower(opts.networkType), x, y);
+  case 'nuswide-bow'
+    fn = @(x, y) get_batch_nuswide_bow(bopts, useGpu, lower(opts.networkType), x, y);
   otherwise
     error('Unrecognized feature %s', opts.features{1});
 end
@@ -187,6 +198,38 @@ for feature_index = 1:numel(opts.features)
 end
 
 % -------------------------------------------------------------------------
+function varargout = get_batch_nuswide_bow(opts, useGpu, networkType, imdb, batch)
+% -------------------------------------------------------------------------
+images = strcat([imdb.imageDir filesep], imdb.images.name(batch)) ;
+if isempty(images); return; end;
+if ~isempty(batch) && imdb.images.set(batch(1)) == 1
+  phase = 'train' ;
+else
+  phase = 'test' ;
+end
+
+for feature_index = 1:numel(opts.features)
+  feature = opts.features{feature_index};
+  if strcmp(feature, 'nuswide-bow')
+    observed_labels = full(imdb.images.label(:, batch));
+    preds = full(imdb.images.bow(:, batch));
+    inputs = permute(preds, [3 4 1 2]);
+    inputs = gpuArray(single(inputs));
+    observed_labels = permute(observed_labels, [3 4 1 2]);
+    observed_labels = gpuArray(single(observed_labels));
+    
+    % loading the latent labels
+    if strcmp(phase, 'train')
+      varargout{1} = {'input', inputs,...
+        'labels', observed_labels};
+    else
+      varargout{1} = {'input', inputs,...
+        'labels', observed_labels};
+    end
+  end
+end
+
+% -------------------------------------------------------------------------
 function varargout = get_batch_rescore(opts, useGpu, networkType, imdb, batch)
 % -------------------------------------------------------------------------
 images = strcat([imdb.imageDir filesep], imdb.images.name(batch)) ;
@@ -201,7 +244,7 @@ for feature_index = 1:numel(opts.features)
   feature = opts.features{feature_index};
   if strcmp(feature, 'rescore')
     observed_labels = full(imdb.images.label(imdb.tags_to_train, batch));
-    preds = full(vl_nnsigmoid(imdb.images.fc1000(:, batch)));
+    preds = full(imdb.images.fc1000(:, batch));
     inputs = cat(1, observed_labels, preds);
     inputs = permute(inputs, [3 4 1 2]);
     inputs = gpuArray(single(inputs));

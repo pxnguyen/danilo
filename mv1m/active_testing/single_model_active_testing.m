@@ -1,4 +1,4 @@
-function single_model_active_testing(exp_name, resdb, gpu)
+function single_model_active_testing(strategy, estimator, resdb, gpu, varargin)
 [~, hostname] = system('hostname');
 hostname = strtrim(hostname);
 switch hostname
@@ -10,7 +10,8 @@ switch hostname
     vetted_labels_storage = '/home/nguyenpx/vetted_labels/';
 end
 fprintf('Loading imdb\n');
-aria_imdb = load(fullfile(cnn_exp, 'aria/aria_imdb.mat'));
+dataset = 'aria';
+imdb = load(fullfile(cnn_exp, sprintf('%s/%s_imdb.mat', dataset, dataset)));
 
 fprintf('Loading the vetted labels\n');
 vetted_labels_train = load(fullfile(vetted_labels_storage, 'vetted_labels_train.mat'));
@@ -24,14 +25,14 @@ vetted_labels = [vetted_labels_train vetted_labels_test];
 %resdb_A = load(fullfile(cnn_exp, 'aria/resdb-iter-390000-test.mat'));
 
 fprintf('Loading init models\n');
-switch exp_name
-  case 'random'
-    run_sm_at_random(aria_imdb, resdb, vetted_labels, 'cnn_exp', cnn_exp, 'gpu', gpu);
-  case 'mcn'
-    run_sm_at_mcn(aria_imdb, resdb, vetted_labels, 'cnn_exp', cnn_exp, 'gpu', gpu);
-  case 'adaptive'
-    run_mm_at_adaptive(aria_imdb, resdb, vetted_labels, 'cnn_exp', cnn_exp, 'gpu', gpu);
-    error('Have not been implemented\n');
-  otherwise
-    error('exp_name not recognize\n')
-end
+run_sm_at_random(imdb, resdb, vetted_labels, 'cnn_exp', cnn_exp,...
+  'gpu', gpu, 'strategy', strategy, 'estimator', estimator, varargin{:});
+% switch strategy
+%   case 'random'
+%   case 'mcn'
+%     run_sm_at_mcn(imdb, resdb, vetted_labels, 'cnn_exp', cnn_exp, 'gpu', gpu, 'estimator', estimator);
+%   case 'adaptive'
+%     run_sm_at_adaptive(imdb, resdb, vetted_labels, 'cnn_exp', cnn_exp, 'gpu', gpu, 'estimator', 'learner');
+%   otherwise
+%     error('exp_name not recognize\n')
+% end
