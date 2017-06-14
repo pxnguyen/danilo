@@ -12,11 +12,16 @@ switch hostname
     opts.num_pool = 12;
   case 'pi'
     matconvnet_path = '/home/phuc/Research/matconvnet-1.0-beta21/';
-    opts.dest_dir = '/mnt/hermes/nguyenpx/vine-images/';
+    opts.dest_dir = sprintf('/mnt/hermes/nguyenpx/%s-images/', 'hmdb');
     opts.data_dir = imdb.imageDir;
     opts.exp_dir = sprintf('/mnt/large/pxnguyen/cnn_exp/%s', dataset_name);
     opts.dataset_name = dataset_name;
     opts.num_pool = 4;
+end
+
+switch dataset_name
+  case 'hmdb'
+    opts.fps = 10;
 end
 
 run(fullfile(matconvnet_path, 'matlab', 'vl_setupnn.m'))

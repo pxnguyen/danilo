@@ -38,7 +38,7 @@ switch exp_name
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
     opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
-    opts.frame_dir = fullfile(frame_root, 'hmdb-images');
+    opts.frame_dir = '/mnt/hermes/nguyenpx/hmdb-images';
     opts.loss_type = 'softmax';
     opts.only_fc = true;
   case 'hmdb_scratch'

@@ -197,14 +197,16 @@ else
 end
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
 if nargout > 0
-  labels = double(full(imdb.images.label(:, batch)));
   switch opts.loss_type
     case 'logistic'
+      labels = double(full(imdb.images.label(:, batch)));
       labels(labels==0) = -1;
       labels = permute(labels, [3, 4, 1, 2]);
     case 'logistic2'
+      labels = double(full(imdb.images.label(:, batch)));
       labels = permute(labels, [3, 4, 1, 2]);
     case 'softmax'
+      labels = double(full(imdb.images.label(batch)));
     otherwise
       error('Unrecognized loss type: %s', opts.loss_type);
   end
