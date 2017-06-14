@@ -39,6 +39,9 @@ switch exp_name
   case 'nuswide81'
     opts.layers_to_store = {'fc1000'};
     opts.input_type = 'image';
+  case 'nuswide81_vetted'
+    opts.layers_to_store = {'pool5', 'fc1000'};
+    opts.input_type = 'image';
   otherwise
 end
 
@@ -51,7 +54,7 @@ fprintf('Loading imdb\n');
 tic; imdb = load(opts.imdbPath); toc;
 train_indeces = find(imdb.images.set==1);
 info.train_vid_count = sum(imdb.images.label(:, train_indeces), 2);
-
+8
 fprintf('Loading resdb\n');
 tic; resdb = load(opts.resdb_path); toc;
 

@@ -20,9 +20,7 @@ opts.train.gpus = gpus;
 opts.batch_size = 80;
 opts.iter_per_epoch = 100000;
 opts.iter_per_save = 2000;
-opts.learning_schedule = [...
-  1e-3*ones(1, 200000),...
-  ];
+opts.learning_schedule = [1e-3*ones(1, 2000 * 80)];
 opts.features = {'rescore'};
 switch exp_name
   case 'aria_language'
@@ -116,6 +114,16 @@ switch exp_name
       1e-5*ones(1, 60000),...
       ];
     opts.features = {'rescore'};
+  case 'nuswide'
+    opts.batch_size = 80;
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [...
+      1e-3*ones(1, 200000),...
+      1e-4*ones(1, 60000),...
+      1e-5*ones(1, 60000),...
+      ];
+    opts.features = {'nuswide-bow'};
   otherwise
     fprintf('Using the the default opts\n');
 end

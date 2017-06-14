@@ -11,6 +11,9 @@ function initParams(obj)
 
 for l = 1:numel(obj.layers)
   p = obj.getParamIndex(obj.layers(l).params) ;
+  if strfind(obj.layers(l).name, 'bn')
+    continue
+  end
   params = obj.layers(l).block.initParams() ;
   switch obj.device
     case 'cpu'

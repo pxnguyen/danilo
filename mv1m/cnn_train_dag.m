@@ -79,15 +79,15 @@ else
 end
 
 sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name}));
-if ~isempty(sel);
+if ~isempty(sel)
   net.vars(sel).precious = 1;
 end
 
 epoch = start_epoch;
 current_iter = start_iter;
-val_with_relevant_labels = sum(imdb.images.label(:, opts.val), 1) > 0;
-opts.val = opts.val(val_with_relevant_labels);
+% val_with_relevant_labels = sum(imdb.images.label(:, opts.val), 1) > 0;
 val_random_order = randperm(numel(opts.val));
+opts.val = val_random_order; %opts.val(val_with_relevant_labels);
 batchSize = opts.batchSize;
 iter_per_epoch = opts.iter_per_epoch;
 iter_per_save = opts.iter_per_save;
@@ -104,7 +104,6 @@ while ~done
     % move the last epoch changed
     start_iter = current_iter;
     epoch = epoch + 1;
-    val_random_order = randperm(numel(opts.val));
     prepareGPUs(opts, true) ;
   else
     if current_iter > numel(opts.learningRate)
@@ -120,25 +119,25 @@ while ~done
     numel(opts.learningRate))) ;
 
   fprintf('Shuffling and balancing the data...\n');
-  [train_order, imdb, augmented_labels] = select_training_examples(...
-    iter_per_save*batchSize, imdb,...
-    'is_train', true, 'label_type', opts.label_type, 'loss_type', opts.loss_type);
-%   train_order = randperm(numel(opts.train));
-%   train_order = train_order(1:min(iter_per_save*batchSize,...
-%     numel(train_order)));
-%   imdb.images.augmented_labels = imdb.images.label;
+%   [train_order, imdb, augmented_labels] = select_training_examples(...
+%     iter_per_save*batchSize, imdb,...
+%     'is_train', true, 'label_type', opts.label_type, 'loss_type', opts.loss_type);
+  train_order = randperm(numel(opts.train));
+  train_order = train_order(1:min(iter_per_save*batchSize,...
+    numel(train_order)));
+  imdb.images.augmented_labels = imdb.images.label;
   params.train = struct();
   params.train.order = train_order ; % shuffle
-  params.train.augmented_labels = augmented_labels ; % shuffle
+%   params.train.augmented_labels = augmented_labels ; % shuffle
   
-  [val_order, imdb, augmented_labels_eval] = select_training_examples(...
-    opts.num_eval_per_epoch, imdb,...
-    'is_train', false);
+%   [val_order, imdb, augmented_labels_eval] = select_training_examples(...
+%     opts.num_eval_per_epoch, imdb,...
+%     'is_train', false);
   
   params.val = struct();
-  params.val.order = val_order;
-  params.val.augmented_labels = augmented_labels_eval;
-%   params.val = opts.val(val_random_order(1:min(opts.num_eval_per_epoch, numel(val_random_order))));
+%   params.val.order = val_order;
+%   params.val.augmented_labels = augmented_labels_eval;
+  params.val.order = opts.val(val_random_order(1:min(opts.num_eval_per_epoch, numel(val_random_order))));
   
   params.imdb = imdb ;
   params.getBatch = getBatch ;
@@ -307,14 +306,14 @@ for t=1:params.batchSize:numel(subset)
     batchStart = t + (labindex-1) + (s-1) * numlabs ;
     batchEnd = min(t+params.batchSize-1, numel(subset)) ;
     batch = subset(batchStart : params.numSubBatches * numlabs : batchEnd) ;
-    batch_labels = params.(mode).augmented_labels(...
-      batchStart : params.numSubBatches * numlabs : batchEnd) ;
+%     batch_labels = params.(mode).augmented_labels(...
+%       batchStart : params.numSubBatches * numlabs : batchEnd) ;
     num = num + numel(batch) ;
     if numel(batch) == 0, continue ; end
 
     inputs = params.getBatch(params.imdb, batch) ;
     % get the original label
-    original_labels = inputs{4};
+    batch_labels = inputs{4};
     
     % if softmax, use the augmented labels instead
     if strcmp(params.loss_type, 'softmax')
@@ -343,12 +342,12 @@ for t=1:params.batchSize:numel(subset)
       net.eval(inputs) ;
     end
 
-    if strcmp(params.loss_type, 'softmax')
-      resdb.gts{local_batch_index} = original_labels;
-    else
-      resdb.gts{local_batch_index} = permute(inputs{4}, [3 4 1 2]);
-    end
-    sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name})) ;
+%     if strcmp(params.loss_type, 'softmax')
+%       resdb.gts{local_batch_index} = original_labels;
+%     else
+%       resdb.gts{local_batch_index} = permute(inputs{4}, [3 4 1 2]);
+%     end
+%     sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name})) ;
 %     resdb.fc1000.outputs{local_batch_index} =...
 %       gather(permute(net.vars(sel).value, [3 4 1 2]));
     local_batch_index = local_batch_index  + 1;

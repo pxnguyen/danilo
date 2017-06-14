@@ -7,7 +7,7 @@ opts = struct();
 switch hostname
   case 'pi'
     opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/', exp_name);
-    opts.frame_dir = '/mnt/hermes/nguyenpx/vine-images/'
+    opts.frame_dir = '/mnt/hermes/nguyenpx/vine-images/';
     opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
   case 'epsilon'
     opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
@@ -17,6 +17,7 @@ switch hostname
   case 'omega'
     opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
     opts.frame_dir = '/scratch/nguyenpx/vine-images/';
+    opts.nuswide_dir = '/mnt/large/pxnguyen/nus-wide/images/medium';
     opts.dataDir = '/home/nguyenpx/vine-large-2';
     opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
 end
@@ -26,6 +27,31 @@ opts.imdbPath = fullfile(opts.expDir, sprintf('%s_imdb.mat', exp_name));
 opts.train = struct();
 opts.train.gpus = gpus;
 switch exp_name
+  case 'mv40'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
+    opts.loss_type = 'softmax';
+  case 'hmdb'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
+    opts.frame_dir = '/mnt/hermes/nguyenpx/hmdb-images';
+    opts.loss_type = 'softmax';
+  case 'hmdb_scratch'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
+    opts.frame_dir = '/mnt/hermes/nguyenpx/hmdb-images';
+    opts.loss_type = 'softmax';
+    opts.pretrained_path = '/mnt/large/pxnguyen/cnn_exp/aria_cft/net-epoch-8-iter-756000.mat';
+  case 'hmdb_cft'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
+    opts.frame_dir = '/mnt/hermes/nguyenpx/hmdb-images';
+    opts.loss_type = 'softmax';
+    opts.pretrained_path = '/mnt/large/pxnguyen/cnn_exp/aria_cft/net-epoch-8-iter-756000.mat';
   case 'ari_full'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
@@ -38,6 +64,15 @@ switch exp_name
       5e-6*ones(1, 80000), 1e-6*ones(1, 80000),...
       5e-7*ones(1, 80000), 1e-7*ones(1, 80000)];
     opts.only_fc = true;
+  case 'aria_scratch'
+    opts.iter_per_epoch = 100000;
+    opts.iter_per_save = 2000;
+    opts.learning_schedule = [...
+      5e-5 * ones(1, 80000), 1e-5 * ones(1, 80000),...
+      5e-6*ones(1, 80000), 1e-6*ones(1, 80000),...
+      5e-7*ones(1, 80000), 1e-7*ones(1, 80000)];
+    opts.only_fc = false;
+    opts.loss_type = 'logistic';
   case 'aria-cfc'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;

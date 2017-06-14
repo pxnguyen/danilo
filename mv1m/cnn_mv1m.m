@@ -32,7 +32,7 @@ opts.only_fc = false;
 opts.dropout_ratio = 0;
 opts.label_type = 'original';
 opts.loss_type = 'logistic';
-opts.input_type = 'image';
+opts.input_type = 'video';
 opts.add_fc128 = false;
 opts.train = struct();
 opts = vl_argparse(opts, varargin) ;
@@ -65,11 +65,6 @@ if exist(imageStatsPath)
 else
   train = find(imdb.images.set == 1) ;
   images = fullfile(imdb.imageDir, imdb.images.name(train(1:100:end))) ;
-  if strcmp(opts.input_type, 'image')
-    images = fullfile(imdb.image_path, imdb.images.name(train(1:100:end))) ;
-  else
-    images = fullfile(imdb.imageDir, imdb.images.name(train(1:100:end))) ;
-  end
   [averageImage, rgbMean, rgbCovariance] = getImageStats(images, ...
     'imageSize', [256 256], ...
     'input_type', opts.input_type,...
@@ -99,19 +94,6 @@ if isempty(opts.network)
         'dropout_ratio', opts.dropout_ratio,...
         'loss_type', opts.loss_type,...
         'input_type', opts.input_type,...
-        'add_fc128', opts.add_fc128,...
-        'classNames', imdb.classes.name);
-      opts.networkType = 'dagnn' ;
-    case 'fully-connected'
-      net = cnn_mv1m_init_fc('averageImage', rgbMean, ...
-        'colorDeviation', rgbDeviation, ...
-        'pretrained_path', opts.pretrained_path, ...
-        'learning_schedule', opts.learning_schedule, ...
-        'batch_size', opts.batch_size, ...
-        'num_frame', opts.num_frame, ...
-        'only_fc', opts.only_fc, ...
-        'dropout_ratio', opts.dropout_ratio,...
-        'loss_type', opts.loss_type,...
         'add_fc128', opts.add_fc128,...
         'classNames', imdb.classes.name);
       opts.networkType = 'dagnn' ;
@@ -205,8 +187,8 @@ if strcmp(opts.input_type, 'video')
       frame_selection = floor(linspace(1, length(files), opts.num_frame));
     end
     all_files{video_index} = files(frame_selection);
-    all_files = cat(2, all_files{:});
   end
+  all_files = cat(2, all_files{:});
 else
   for video_index = 1:length(video_paths)
     video_name = sprintf('%s.jpg', video_paths{video_index});
@@ -215,25 +197,7 @@ else
 end
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
 if nargout > 0
-  switch opts.label_type
-    case 'vetted'
-      labels = double(full(imdb.images.vetted_label(:, batch)));
-    case 'original'
-      labels = double(full(imdb.images.label(:, batch)));
-    case 'latent'
-      if strcmp(phase, 'train')
-        labels = zeros(4000, numel(batch));
-        for batch_index = 1:numel(batch)
-          neighbor_idx = imdb.closest_neighbors(:, batch(batch_index));
-          neighbor_latent_labels = imdb.latent_labels.value(:, neighbor_idx);
-          neighbor_latent_label = max(neighbor_latent_labels, [], 2);
-          labels(:, batch_index) = neighbor_latent_label;
-        end
-      else
-        labels = double(full(imdb.images.label(:, batch)));
-      end
-  end
-  
+  labels = double(full(imdb.images.label(:, batch)));
   switch opts.loss_type
     case 'logistic'
       labels(labels==0) = -1;
@@ -244,9 +208,7 @@ if nargout > 0
     otherwise
       error('Unrecognized loss type: %s', opts.loss_type);
   end
-  %TODO: need to throw an exception here.
-  num_classes = numel(imdb.classes.name);
-  % labels has to be W x H x D x N
+  
   switch networkType
     case 'simplenn'
       varargout = {data, labels} ;

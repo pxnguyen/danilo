@@ -182,10 +182,10 @@ switch lower(opts.loss)
     % there must be one categorical label per prediction scalar
     assert(labelSize(3) == inputSize(3)) ;
 
-    if hasIgnoreLabel
+%     if hasIgnoreLabel
       % null labels denote instances that should be skipped
-      instanceWeights = cast(c ~= 0) ;
-    end
+%       instanceWeights = cast(c ~= 0) ;
+%     end
 
   otherwise
     error('Unknown loss ''%s''.', opts.loss) ;

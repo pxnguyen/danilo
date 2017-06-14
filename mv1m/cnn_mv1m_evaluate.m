@@ -25,6 +25,7 @@ opts.num_frame = 10;
 opts.batch_size = 9;
 opts.layers_to_store = {'pool5', 'sigmoid', 'fc1000'};
 opts.set_to_run = 'eval';
+opts.input_type = 'video';
 opts.train = struct() ;
 opts = vl_argparse(opts, varargin) ;
 if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
@@ -57,6 +58,7 @@ if isempty(opts.network)
                                  'pretrained_path', opts.pretrained_path, ...
                                  'batch_size', opts.batch_size, ...
                                  'num_frame', opts.num_frame, ...
+                                 'input_type', opts.input_type,...
                                  'classNames', imdb.classes.name);
 %       net = cnn_mv1m_init_language_model(...
 %         'batch_size', opts.batch_size, ...
@@ -74,7 +76,7 @@ end
 
 if strcmp(opts.set_to_run, 'train')
   val_set = find(imdb.images.set==1);
-elseif strcmp(opts.set_to_run, 'eval')
+elseif strcmp(opts.set_to_run, 'test')
   val_set = find(imdb.images.set==2);
 else
   error('Wrong value for set_to_run %s', opts.set_to_run);
@@ -113,6 +115,7 @@ bopts.test = struct(...
 
 bopts.frame_dir = opts.frame_dir;
 bopts.num_frame = opts.num_frame;
+bopts.input_type = opts.input_type;
 
 % Copy the parameters for data augmentation
 bopts.train = bopts.test ;
@@ -126,7 +129,11 @@ fn = @(x, y) getBatch(bopts, useGpu, lower(opts.networkType), x, y);
 % -------------------------------------------------------------------------
 function varargout = getBatch(opts, useGpu, networkType, imdb, batch)
 % -------------------------------------------------------------------------
-images = strcat([imdb.imageDir filesep], imdb.images.name(batch)) ;
+if strcmp(opts.input_type, 'video')
+  images = strcat([imdb.imageDir filesep], imdb.images.name(batch)) ;
+else
+  images = strcat([imdb.image_path filesep], imdb.images.name(batch)) ;
+end
 if isempty(images)
   return
 end
@@ -135,23 +142,27 @@ if ~isempty(batch) && imdb.images.set(batch(1)) == 1
 else
   phase = 'test' ;
 end
-w2v_storage = '/home/phuc/Research/word2vec_storage';
-video_paths = images;
-success = false(length(video_paths), 1);
 video_paths = images;
 all_files = cell(length(video_paths),1);
-for video_index = 1:length(video_paths)
-  files = extract_frames(video_paths{video_index}, 'dest_dir', opts.frame_dir);
-  if strcmp(phase, 'train')
-    frame_selection = randperm(length(files));
-    frame_selection = frame_selection(1:opts.num_frame);
-  elseif strcmp(phase, 'test')
-    frame_selection = floor(linspace(1, length(files), opts.num_frame));
+if strcmp(opts.input_type, 'video')
+  for video_index = 1:length(video_paths)
+    files = extract_frames(video_paths{video_index}, 'dest_dir', opts.frame_dir);
+    if strcmp(phase, 'train')
+      frame_selection = randperm(length(files));
+      frame_selection = frame_selection(1:opts.num_frame);
+    elseif strcmp(phase, 'test')
+      frame_selection = floor(linspace(1, length(files), opts.num_frame));
+    end
+    all_files{video_index} = files(frame_selection);
+    all_files = cat(2, all_files{:});
   end
-  all_files{video_index} = files(frame_selection);
+else
+  for video_index = 1:length(video_paths)
+    video_name = sprintf('%s.jpg', video_paths{video_index});
+    all_files{video_index} = video_name;
+  end
 end
 
-all_files = cat(2, all_files{:});
 data = getImageBatch(all_files, opts.(phase), 'prefetch', nargout == 0) ;
 
 % stuffs for the w2v stuffs, need to merge this to the previous block
