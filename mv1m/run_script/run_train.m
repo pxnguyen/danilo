@@ -19,7 +19,7 @@ switch hostname
     frame_root = '/scratch/nguyenpx/';
     opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
     opts.frame_dir = '/scratch/nguyenpx/vine-images/';
-    opts.nuswide_dir = '/mnt/large/pxnguyen/nus-wide/images/medium';
+    %opts.nuswide_dir = '/mnt/large/pxnguyen/nus-wide/images/medium';
     opts.dataDir = '/home/nguyenpx/vine-large-2';
     opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
 end
