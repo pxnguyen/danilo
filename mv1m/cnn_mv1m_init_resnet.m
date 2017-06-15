@@ -29,7 +29,7 @@ if opts.only_fc
     opts.stop_gradient_location = 'pool5';
   end
 else
-  opts.stop_gradient_location = '';
+  opts.stop_gradient_location = 'res5b';
 end
 
 net = dagnn.DagNN.loadobj(load(opts.pretrained_path));
@@ -131,12 +131,12 @@ fc_block = dagnn.Conv('size', [h, w, in, out], 'hasBias', true, ...
   'stride', 1, 'pad', 0);
 
 if strcmp(opts.input_type, 'video')
-%   net.addLayer('fc1000', fc_block, ...
-%     'pool3D5', 'fc1000',...
-%     {['fc1000_f'], ['fc1000_b']});
   net.addLayer('fc1000', fc_block, ...
-    'stop_gradient', 'fc1000',...
+    'pool3D5', 'fc1000',...
     {['fc1000_f'], ['fc1000_b']});
+%   net.addLayer('fc1000', fc_block, ...
+%     'stop_gradient', 'fc1000',...
+%     {['fc1000_f'], ['fc1000_b']});
 else
   net.addLayer('fc1000', fc_block, ...
     'pool5', 'fc1000',...
@@ -176,9 +176,9 @@ end
 
 % performance metrics
 sigmoid_layer = find(arrayfun(@(x) strcmp(x.name, 'sigmoid'), net.layers)) ;
-if isempty(sigmoid_layer)
-  net.addLayer('sigmoid', dagnn.Sigmoid(), lName, 'sigmoid');
-end
+% if isempty(sigmoid_layer)
+%   net.addLayer('sigmoid', dagnn.Sigmoid(), lName, 'sigmoid');
+% end
 
 % add the stop gradient block
 stop_gradient_layer = find(arrayfun(@(x) strcmp(x.name, 'stop_gradient'), net.layers)) ;
@@ -223,7 +223,7 @@ if strcmp(opts.loss_type, 'softmax')
              {'fc1000', 'label'}, ...
              'top1error') ;
   stop_gradient_layer = find(arrayfun(@(x) strcmp(x.name, 'stop_gradient'), net.layers)) ;
-  net.layers(stop_gradient_layer).inputs{1} = 'pool5'; %TODO: this is a hack.
+%   net.layers(stop_gradient_layer).inputs{1} = 'pool5'; %TODO: this is a hack.
 else
   net.initParams(); % training things from scratch
   net.addLayer('error',...

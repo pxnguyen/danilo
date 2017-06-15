@@ -87,7 +87,6 @@ epoch = start_epoch;
 current_iter = start_iter;
 % val_with_relevant_labels = sum(imdb.images.label(:, opts.val), 1) > 0;
 val_random_order = randperm(numel(opts.val));
-opts.val = val_random_order; %opts.val(val_with_relevant_labels);
 batchSize = opts.batchSize;
 iter_per_epoch = opts.iter_per_epoch;
 iter_per_save = opts.iter_per_save;
@@ -127,7 +126,7 @@ while ~done
     numel(train_order)));
   imdb.images.augmented_labels = imdb.images.label;
   params.train = struct();
-  params.train.order = train_order ; % shuffle
+  params.train.order = opts.train(train_order) ; % shuffle
 %   params.train.augmented_labels = augmented_labels ; % shuffle
   
 %   [val_order, imdb, augmented_labels_eval] = select_training_examples(...

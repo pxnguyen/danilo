@@ -42,15 +42,13 @@ switch exp_name
     opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
     opts.frame_dir = fullfile(frame_root, 'hmdb-images');
     opts.loss_type = 'softmax';
-    opts.only_fc = true;
   case 'hmdb_scratch'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
-    opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
-    opts.frame_dir = '/mnt/hermes/nguyenpx/hmdb-images';
+    opts.learning_schedule = [1e-5 * ones(1, 140000), 1e-5*ones(1, 140000), 5e-6*ones(1, 50000)];
+    opts.frame_dir = fullfile(frame_root, 'hmdb-images');
     opts.loss_type = 'softmax';
-    opts.pretrained_path = '/mnt/large/pxnguyen/cnn_exp/aria_cft/net-epoch-8-iter-756000.mat';
-    opts.only_fc = true;
+    opts.pretrained_path = fullfile(cnn_exp_root, 'aria_scratch', 'net-epoch-2-iter-128000.mat');
   case 'hmdb_cft'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
@@ -58,7 +56,7 @@ switch exp_name
     opts.frame_dir = fullfile(frame_root, 'hmdb-images');
     opts.loss_type = 'softmax';
     opts.pretrained_path = '/mnt/large/pxnguyen/cnn_exp/aria_cft/net-epoch-8-iter-756000.mat';
-    opts.only_fc = true;
+    %opts.only_fc = true;
   case 'ari_full'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
