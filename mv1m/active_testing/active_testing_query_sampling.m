@@ -44,6 +44,7 @@ for index = 1:numel(tags)
 end
 
 %% tag_indeces within the 1000 tags
+
 fid = fopen('active_testing/tags.list');
 tags = textscan(fid, '%s\n');
 tags = tags{1};
