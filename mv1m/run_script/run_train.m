@@ -6,7 +6,8 @@ hostname = strtrim(hostname);
 opts = struct();
 switch hostname
   case 'pi'
-    opts.expDir = fullfile('/mnt/large/pxnguyen/cnn_exp/', exp_name);
+    cnn_exp_root = '/mnt/large/pxnguyen/cnn_exp/';
+    opts.expDir = fullfile(cnn_exp_root, exp_name);
     opts.frame_dir = '/mnt/hermes/nguyenpx/vine-images/';
     frame_root = '/mnt/hermes/nguyenpx';
     opts.pretrained_path = '/home/phuc/Research/pretrained_models/imagenet-resnet-50-dag.mat';
@@ -17,7 +18,8 @@ switch hostname
     opts.pretrained_path = '/home/nguyenpx/pretrained_models/imagenet-resnet-50-dag.mat';
   case 'omega'
     frame_root = '/scratch/nguyenpx/';
-    opts.expDir = fullfile('/home/nguyenpx/cnn_exp/', exp_name);
+    cnn_exp_root = '/home/nguyenpx/cnn_exp/';
+    opts.expDir = fullfile(cnn_exp_root, exp_name);
     opts.frame_dir = '/scratch/nguyenpx/vine-images/';
     %opts.nuswide_dir = '/mnt/large/pxnguyen/nus-wide/images/medium';
     opts.dataDir = '/home/nguyenpx/vine-large-2';
@@ -48,13 +50,15 @@ switch exp_name
     opts.frame_dir = '/mnt/hermes/nguyenpx/hmdb-images';
     opts.loss_type = 'softmax';
     opts.pretrained_path = '/mnt/large/pxnguyen/cnn_exp/aria_cft/net-epoch-8-iter-756000.mat';
+    opts.only_fc = true;
   case 'hmdb_cft'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
-    opts.learning_schedule = [5e-5 * ones(1, 50000), 5e-6*ones(1, 50000), 5e-7*ones(1, 50000)];
-    opts.frame_dir = '/mnt/hermes/nguyenpx/hmdb-images';
+    opts.learning_schedule = [5e-5 * ones(1, 140000), 1e-5*ones(1, 140000), 5e-6*ones(1, 50000)];
+    opts.frame_dir = fullfile(frame_root, 'hmdb-images');
     opts.loss_type = 'softmax';
     opts.pretrained_path = '/mnt/large/pxnguyen/cnn_exp/aria_cft/net-epoch-8-iter-756000.mat';
+    opts.only_fc = true;
   case 'ari_full'
     opts.iter_per_epoch = 100000;
     opts.iter_per_save = 2000;
@@ -65,7 +69,7 @@ switch exp_name
     opts.learning_schedule = [...
       5e-5 * ones(1, 80000), 1e-5 * ones(1, 80000),...
       5e-6*ones(1, 80000), 1e-6*ones(1, 80000),...
-      5e-7*ones(1, 80000), 1e-7*ones(1, 80000)];
+      5e-7*ones(1, 80000), 1e-7*ones(1, 8000000)];
     opts.only_fc = true;
   case 'aria_scratch'
     opts.iter_per_epoch = 100000;

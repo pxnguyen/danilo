@@ -72,7 +72,10 @@ net.meta.trainOpts.weightDecay = 0.0001 ;
 %net.layers(1).block.size[3] = opts.num_flow * 2; %TODO(phucng): change 20 to num_flow
 
 % remove 'prob'
-net.removeLayer('prob');
+prob_layer = find(arrayfun(@(x) strcmp(x.name, 'prob'), net.layers)) ;
+if ~isempty(prob_layer)
+  net.removeLayer('prob');
+end
 
 % turn all the batch normalization off
 % for iparams = 1:length(net.params)
@@ -101,16 +104,18 @@ end
 if strcmp(opts.input_type, 'video')
   % adding the 3D pooling
   i_pool5 = find(~cellfun('isempty', strfind({net.layers.name}, 'pool5')));
-  block = dagnn.Pooling3D() ;
-  block.method = 'max' ;
-  block.poolSize = [net.layers(i_pool5).block.poolSize opts.num_frame];
-  block.pad = [net.layers(i_pool5).block.pad 0,0];
-  block.stride = [net.layers(i_pool5).block.stride 2];
+  if ~isempty(i_pool5)
+    block = dagnn.Pooling3D() ;
+    block.method = 'max' ;
+    block.poolSize = [net.layers(i_pool5).block.poolSize opts.num_frame];
+    block.pad = [net.layers(i_pool5).block.pad 0,0];
+    block.stride = [net.layers(i_pool5).block.stride 2];
 
-  net.addLayerAt(i_pool5, 'pool3D5', block, ...
-    [net.layers(i_pool5).inputs], ...
-    'pool3D5') ;
-  net.removeLayer('pool5') ;
+    net.addLayerAt(i_pool5, 'pool3D5', block, ...
+      [net.layers(i_pool5).inputs], ...
+      'pool3D5') ;
+    net.removeLayer('pool5') ;
+  end
 end
 
 % remove 'prob'
@@ -126,8 +131,11 @@ fc_block = dagnn.Conv('size', [h, w, in, out], 'hasBias', true, ...
   'stride', 1, 'pad', 0);
 
 if strcmp(opts.input_type, 'video')
+%   net.addLayer('fc1000', fc_block, ...
+%     'pool3D5', 'fc1000',...
+%     {['fc1000_f'], ['fc1000_b']});
   net.addLayer('fc1000', fc_block, ...
-    'pool3D5', 'fc1000',...
+    'stop_gradient', 'fc1000',...
     {['fc1000_f'], ['fc1000_b']});
 else
   net.addLayer('fc1000', fc_block, ...
@@ -143,6 +151,16 @@ params = cellfun(@gather, params, 'UniformOutput', false) ;
 index_fc1000 = find(arrayfun(@(x) strcmp(x.name, 'fc1000'), net.layers));
 lName = net.layers(index_fc1000).name;
 
+loss_layer = find(arrayfun(@(x) strcmp(x.name, 'loss'), net.layers)) ;
+if ~isempty(loss_layer)
+  net.removeLayer('loss');
+end
+
+loss_layer = find(arrayfun(@(x) strcmp(x.name, 'error'), net.layers)) ;
+if ~isempty(loss_layer)
+  net.removeLayer('error');
+end
+
 switch opts.loss_type
   case 'logistic'
     net.addLayer('loss', dagnn.Loss('loss', 'logistic'), {lName, 'label'}, 'objective');
@@ -157,46 +175,55 @@ switch opts.loss_type
 end
 
 % performance metrics
-net.addLayer('sigmoid', dagnn.Sigmoid(), lName, 'sigmoid');
+sigmoid_layer = find(arrayfun(@(x) strcmp(x.name, 'sigmoid'), net.layers)) ;
+if isempty(sigmoid_layer)
+  net.addLayer('sigmoid', dagnn.Sigmoid(), lName, 'sigmoid');
+end
 
 % add the stop gradient block
-if ~isempty(opts.stop_gradient_location)
-  stop_gradient_block = dagnn.StopGradient();
-  layer_before_stop_index = find(arrayfun(@(x) strcmp(x.name, opts.stop_gradient_location), net.layers)) ;
-  layer_before_stop = net.layers(layer_before_stop_index);
-  outputs = layer_before_stop.outputs;
-  if numel(outputs)>1; error('This case is not handled\n'); end;
-  bstop_output = outputs{1};
-  for i=1:layer_before_stop_index
-    params = net.layers(i).params;
-    for i_param=1:numel(params)
-      param_name = params{i_param};
-      param_index = find(arrayfun(@(x) strcmp(x.name, param_name), net.params)) ;
-      net.params(param_index).learningRate = 0;
-      net.params(param_index).weightDecay = 0;
-    end
-  end
-
-  net.addLayerAt(layer_before_stop_index, 'stop_gradient', stop_gradient_block,...
-   opts.stop_gradient_location, 'stop_gradient');
-
-  % find the layer with input matches bstop_output
-  for i_layer=1:numel(net.layers)
-    if strcmp(net.layers(i_layer).inputs{1}, bstop_output) &&...
-        ~strcmp(net.layers(i_layer).name, 'stop_gradient')
-      if numel(net.layers(i_layer).inputs) > 1
-        error('This case is not handled\n');
+stop_gradient_layer = find(arrayfun(@(x) strcmp(x.name, 'stop_gradient'), net.layers)) ;
+if isempty(stop_gradient_layer)
+  if ~isempty(opts.stop_gradient_location)
+    stop_gradient_block = dagnn.StopGradient();
+    layer_before_stop_index = find(arrayfun(@(x) strcmp(x.name, opts.stop_gradient_location), net.layers)) ;
+    layer_before_stop = net.layers(layer_before_stop_index);
+    outputs = layer_before_stop.outputs;
+    if numel(outputs)>1; error('This case is not handled\n'); end;
+    bstop_output = outputs{1};
+    
+    for i=1:layer_before_stop_index
+      params = net.layers(i).params;
+      for i_param=1:numel(params)
+        param_name = params{i_param};
+        param_index = find(arrayfun(@(x) strcmp(x.name, param_name), net.params)) ;
+        net.params(param_index).learningRate = 0;
+        net.params(param_index).weightDecay = 0;
       end
-      net.layers(i_layer).inputs{1} = 'stop_gradient';
+    end
+
+    net.addLayerAt(layer_before_stop_index, 'stop_gradient', stop_gradient_block,...
+     opts.stop_gradient_location, 'stop_gradient');
+
+    % find the layer with input matches bstop_output
+    for i_layer=1:numel(net.layers)
+      if strcmp(net.layers(i_layer).inputs{1}, bstop_output) &&...
+          ~strcmp(net.layers(i_layer).name, 'stop_gradient')
+        if numel(net.layers(i_layer).inputs) > 1
+          error('This case is not handled\n');
+        end
+        net.layers(i_layer).inputs{1} = 'stop_gradient';
+      end
     end
   end
 end
 
-if opts.loss_type == 'softmax'
+if strcmp(opts.loss_type, 'softmax')
   net.addLayer('top1error', ...
              dagnn.Loss('loss', 'classerror'), ...
-             {lName, 'label'}, ...
+             {'fc1000', 'label'}, ...
              'top1error') ;
+  stop_gradient_layer = find(arrayfun(@(x) strcmp(x.name, 'stop_gradient'), net.layers)) ;
+  net.layers(stop_gradient_layer).inputs{1} = 'pool5'; %TODO: this is a hack.
 else
   net.initParams(); % training things from scratch
   net.addLayer('error',...

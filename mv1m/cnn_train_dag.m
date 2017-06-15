@@ -350,7 +350,7 @@ for t=1:params.batchSize:numel(subset)
 %     sel = find(cellfun(@(x) strcmp(x, 'fc1000'), {net.vars.name})) ;
 %     resdb.fc1000.outputs{local_batch_index} =...
 %       gather(permute(net.vars(sel).value, [3 4 1 2]));
-    local_batch_index = local_batch_index  + 1;
+%     local_batch_index = local_batch_index  + 1;
   end
 
   % Accumulate gradient.

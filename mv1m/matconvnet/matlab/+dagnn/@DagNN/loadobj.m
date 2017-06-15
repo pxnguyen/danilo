@@ -14,6 +14,9 @@ function obj = loadobj(s)
 
 if ischar(s) s = load(s); end
 if isstruct(s)
+  if ~isfield(s, 'layers')
+    s = s.net;
+  end
   assert(isfield(s, 'layers'), 'Invalid model.');
   if ~isstruct(s.layers)
     warning('The model appears to be `simplenn` model. Using `fromSimpleNN` instead.');
